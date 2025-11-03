@@ -1,0 +1,25 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  assetdb-temp:
+    ports:
+      - ${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002}:${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002}
+    environment:
+      MINIO_ROOT_USER: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_PASSWORD:-minio123}
+    command: server --address 0.0.0.0:${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002} --console-address 0.0.0.0:38589 /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002}/minio/health/live"]
+
+  assetdb-temp-init:
+    environment:
+      MINIO_ROOT_USER: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_PASSWORD:-minio123}
+    command:
+      - -c
+      - |
+        ./init.sh -d ${HANS_ML_BACKEND_ASSETDB_TEMP_HOST:-assetdb-temp} -p ${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002} -b assets-temp,archive,error
+
+networks:
+  ml-backend-tier:
+    name: ${HANS_TEST_NETWORK_NAME}
+    external: true

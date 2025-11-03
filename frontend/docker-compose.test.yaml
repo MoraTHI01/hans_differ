@@ -1,0 +1,24 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  pytest:
+    build: flask
+    container_name: hans-frontend-pytest
+    entrypoint: /bin/bash
+    tty: true
+    stdin_open: true
+    command:
+      - -c
+      - |
+        ./test.sh
+    ports:
+      - 8087:8087
+    restart: always
+    depends_on:
+      - frontend
+    networks:
+      - frontend-tier
+
+networks:
+  frontend-tier:
+    name: hans-test-network
+    external: true

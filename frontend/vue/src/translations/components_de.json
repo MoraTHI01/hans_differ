@@ -1,0 +1,369 @@
+{
+  "BottomRow": {
+    "linkContact": "Wie erreichen Sie uns?",
+    "linkLegal": "Impressum",
+    "linkDataProtection": "Datenschutz",
+    "generalNotes": "Nutzungsbedingungen"
+  },
+  "ButtonDark": {},
+  "ButtonLight": {},
+  "ChannelCard": {},
+  "ChatLoading": {
+    "loading": "Lade Dienste...",
+    "explanation": "Der Vorgang benötigt etwas Zeit, bitte warten Sie."
+  },
+  "ChatComponent": {
+    "title": "Chat",
+    "closeButton": "Schließen",
+    "openChatButton": "Öffne Chat"
+  },
+  "ChatContextWindow": {
+    "title": "Verwendeter Kontext",
+    "closeButton": "Schließen",
+    "tooltipContextButton": "Zeige verwendeten Kontext",
+    "transcript": "Transkript",
+    "slides": "Folien",
+    "slide": "Folie",
+    "snapshots": "Video-Schnappschüsse",
+    "snapshot": "Video-Schnappschuss",
+    "transcriptContextEmpty": "Keine Abschnitte aus dem Transkript als Kontext verfügbar.",
+    "slideContextEmpty": "Keine Folien im Kontext vorhanden.",
+    "snapshotContextEmpty": "Keine Video-Schnappschüsse im Kontext vorhanden."
+  },
+  "ChatInput": {
+    "citationPopoverTitle": "Auszug aus dem Transkript",
+    "citationPopoverSlideTitle": "Referenz auf Folie",
+    "citationPopoverSlideLink": "F.",
+    "citationPopoverSnapshotTitle": "Referenz auf Video-Schnappschuss",
+    "citationPopoverSnapshotLink": "V.",
+    "placeholder": "Eine Nachricht senden...",
+    "tooltipCopyButton": "Kopieren",
+    "tooltipRegenerateButton": "Neu generieren",
+    "tooltipSendButton": "Senden",
+    "tooltipSendButtonContext": "Sende Nachricht mit Kontext aus Transkript",
+    "tooltipSendButtonContextAndCite": "Sende Nachricht mit Kontext aus Transkript und Antwort mit Zitaten",
+    "tooltipSendButtonSnapshotContext": "Sende Nachricht mit Video-Schnappschuss als Kontext",
+    "tooltipTranslateToggleActive": "Übersetzung ausschalten",
+    "tooltipTranslateToggleInactive": "Übersetzung einschalten",
+    "dropdownPromptOptionNormal": "Normale Nachricht",
+    "dropdownPromptOptionWithContext": "Nachricht mit Kontext aus Transkript",
+    "dropdownPromptOptionWithContextAndCite": "Nachricht mit Kontext aus Transkript und Antwort mit Zitaten",
+    "dropdownPromptOptionWithSelectedTranscriptContext": "Nachricht mit ausgwähltem Kontext aus Transkript",
+    "dropdownPromptOptionWithSnapshotContext": "Nachricht mit Video-Schnappschuss als Kontext",
+    "dropdownOptionsClearChatHistory": "Chatverlauf löschen",
+    "dropdownOptionsInfo": "Info",
+    "errorAdaptingMessageContext": "Fehler beim Verbinden mit dem Dienst für die Kontextverarbeitung. Bitte versuchen Sie es später noch einmal!",
+    "errorTranslateMessage": "Fehler beim Verbinden mit dem Dienst zur Nachrichtenübersetzung. Bitte versuchen Sie es später noch einmal!",
+    "errorSendMessage": "Fehler beim Verbinden mit dem großen Sprachmodell. Bitte versuchen Sie es später noch einmal!",
+    "promptExampleShortSummary": "Erzeuge bitte eine kurze Zusammenfassung mit maximal 50 Worten.",
+    "promptExampleShortSummaryBtn": "Kurze Zusammenfassung",
+    "promptExampleSummary": "Erzeuge bitte eine Zusammenfassung mit mindestens 200 Worten.",
+    "promptExampleSummaryBtn": "Zusammenfassung",
+    "promptExampleExercise": "Erstelle eine Übungsaufgabe die das Thema der Vorlesung vertieft und mir beim Verständnis des Stoffes hilft.",
+    "promptExampleExerciseBtn": "Übungsaufgabe",
+    "promptExampleQuestionaire": "Erstelle nur eine einzige mittelschwere Quizfrage mit einer Liste aus 4 kurzen Antworten am Anfang markiert durch A), B), C), D) mit nur einer korrekten Antwort.",
+    "promptExampleQuestionaireBtn": "Quizfrage",
+    "loading": "Lade...",
+    "slide": "Folie",
+    "currentSlide": ". Aktuell auf [Folie ",
+    "tooltipDeleteSnapshotButton": "Lösche Video-Schnappschuss"
+  },
+  "ChatMessages": {
+    "errorRequestCanceled": "Die Anfrage wurde abgebrochen. Bitte versuchen Sie es erneut.",
+    "errorRequestTimeout": "Die Anfrage dauerte zu lange. Versuchen Sie es erneut.",
+    "errorRequest": "Die Anfrage ist fehlgeschlagen. Versuchen Sie es erneut."
+  },
+  "ModelInfo": {
+    "modelId": "Modell-ID",
+    "modelHash": "Modell-Hash",
+    "modelType": "Modell-Datentyp",
+    "modelMaxToken": "Maximale Anzahl an Token",
+    "maxNewToken": "Maximale Anzahl an neu erzeugten Token"
+  },
+  "ChatServiceInfo": {
+    "title": "Info",
+    "llmService": "LLM-Dienst",
+    "vllmService": "VLLM-Dienst",
+    "embeddingService": "Embedding-Dienst",
+    "translationService": "Übersetzungsdienst",
+    "closeButton": "Schließen"
+  },
+  "ChatSettingsWindow": {
+    "title": "Einstellungen",
+    "closeButton": "Schließen",
+    "tooltipSettingsButton": "Einstellungen",
+    "llm": "Sprachmodell",
+    "context": "Kontext",
+    "vision": "Bildeingabe",
+    "tutor": "Tutor",
+    "translation": "Übersetzungsmodell",
+    "generalDescription": "Die folgenden Einstellungen konfigurieren den Kontext, der für den Prompt an das große Sprachmodell verwendet wird. Wenn keine Option ausgewählt ist, wird das Modell ausschließlich seine Trainingsdaten (Weltwissen) zurückgreifen.",
+    "modeContext": "Kontext-Modus",
+    "switchContextDescription": "Verwende die am besten passenden Textabschnitte des Transkripts und die am besten passenden Folientexte für den Prompt-Kontext, um Halluzinationen zu verringern.",
+    "modeCitation": "Zitate-Modus",
+    "switchCitationDescription": "Verwendet die entsprechend bereitgestellten Textabschnitte des Kontextmodus und weist das große Sprachmodell an diese während der Generierung zu Zitieren. Dies ermöglicht es, mit den Antworten des großen Sprachmodells zu interagieren, indem man auf die Zitate klickt und den entsprechenden Textabschnitt oder die zugehörige Folie anzeigt. Dies ermöglicht es die generierten Textpassagen durch das öffnen der Zitate zu überprüfen, um Halluzinationen zu erkennen.",
+    "modeSelectedContext": "Gewählter Abschnittsmodus",
+    "switchSelectedContextDescription": "Verwendet einen selbst gewählten Abschnitt aus dem Transkript als Kontext. Dieser muss vorher mit der Maus in der Transkription unter dem Video markiert werden. Alle anderen Kontexte werden verworfen, daher sollte nur der ausgewählte Kontext erscheinen, wenn der Stack-Button geklickt wird.",
+    "modeVision": "Folien-Bildeingabe-Modus",
+    "switchVisionDescription": "Durch Drücken der Taste [ im Eingabefeld verwenden Sie die aktuelle Folie als Bildeingabe für das große Bild-Sprachmodell, um mit dem Folienmaterial zu interagieren. Dies ermöglicht es zum Beispiel eine Frage zu einer gezeichneten Schaltung auf der aktuellen Folie zu stellen.",
+    "modeVisionSurroundingSlides": "Bildeingabe-Kontext",
+    "switchVisionSurroundingSlidesDescription": "Verwende die vorherige und nächste Folie zusätzlich zur angegebenen Folie als Bildeingabe für das große Bild-Sprachmodell.",
+    "modeVisionSnapshot": "Video-Schnappschuss-Bildeingabe-Modus",
+    "switchVisionSnapshotDescription": "Verwenden Sie einen Videoschnappschuss als Bildeingabe für das große Bild-Sprachmodell zur Interaktion mit dem Videomaterial. So können Sie z.B. eine Frage zu einer im Video live geschriebenen Whiteboard-Berechnung stellen.",
+    "actDescription": "Die folgenden Einstellungen ändern die Interaktion mit dem großen Sprachmodell.",
+    "modeTutor": "Tutor-Modus",
+    "switchTutorDescription": "Das große Sprachmodell wird angewiesen, als Lerntutor zu fungieren. Dies führt zu mehreren Dialogschritten um Lösungen für Anfragen mit dem großen Sprachmodell zu finden.",
+    "modeTranslation": "Übersetzungsmodus",
+    "switchTranslationDescription": "Übersetzt die Eingabe des Chat-Textfensters ins Englische. Die Antwort des großen Sprachmodells wird vom Englischen ins Deutsche zurückübersetzt, um die endgültige Antwort im Chatfenster anzuzeigen. Dieser Modus kann zu unterschiedlichen Ergebnissen führen, da die meisten großen Sprachmodelle mit einer größeren Menge an englischen Textdaten trainiert wurden. Sie können den Übersetzungsbutton bei jeder Antwort verwenden, um die ursprüngliche englische Antwort zu sehen."
+  },
+  "ConsentBannerMatomo": {
+    "text": "Liebe Besucher*in, wir möchten Ihre Nutzung dieser Website zu Forschungszwecken und zur Weiterentwicklung von HAnS mit dem Webanalysetool Matomo (inkl. Cookies) analysieren. Für weitere Informationen über Matomo",
+    "link": "klicken Sie bitte hier",
+    "accept": "Akzeptieren",
+    "decline": "Ablehnen"
+  },
+  "DropdownLogin": {
+    "login": "Anmelden",
+    "api": "API",
+    "channel": "Kanal",
+    "survey": "Umfrage",
+    "announcement": "Ankündigung",
+    "upload": "Hochladen",
+    "yourMedia": "Ihre Medien",
+    "evaluation": "Evaluation",
+    "logout": "Abmelden"
+  },
+  "DynamicQuestionnaire": {
+    "lecturerQuestionnaires": "Durch Dozierende freigegebene Fragen zum jeweiligen Thema",
+    "generatedQuestionnaires": "Automatisch vorab generierte Fragen zum jeweiligen Thema",
+    "dynamicQuestionnaires": "Dynamisch generierte Fragen nach Zeitintervall",
+    "difficultyTitle": "Schwierigkeitsstufe",
+    "title": "Fragen",
+    "closeButton": "Schließen",
+    "openQuestionnaireButton": "Öffne Fragen"
+  },
+  "QuestionnaireStatic": {
+    "loading": "Lade...",
+    "topic": "Thema"
+  },
+  "QuestionnaireWithInterval": {
+    "question": "Fragen",
+    "explanation": "Erklärung",
+    "hint": "Klicke um Hinweise zur Verwendung der automatisch erstellten Fragen zu bekommen",
+    "showless": "Weniger zeigen",
+    "showmore": "mehr",
+    "generating": "Generiere Frage...",
+    "errorRequestCanceled": "Generierung der Frage abgebrochen. Bitte versuchen Sie es erneut.",
+    "errorRequestTimeout": "Generierung der Frage dauerte zu lange. Versuchen Sie es erneut.",
+    "errorRequest": "Generierung der Frage fehlgeschlagen. Versuchen Sie es erneut.",
+    "propertyIntervalLength": "Intervalllänge für die Erstellung von Fragen:",
+    "minute": "Minute",
+    "minutes": "Minuten",
+    "loading": "Lade..."
+  },
+  "DifficultySelector": {
+    "easy": "Leicht",
+    "medium": "Mittel",
+    "difficult": "Schwer"
+  },
+  "EditChapter": {
+    "heading": "Fragen zum Thema",
+    "instructions": "Wählen Sie einen Schwierigkeitsgrad, um die entsprechenden Fragen zu sehen. Es gibt mindestens eine Frage für jeden Schwierigkeitsgrad.\nSie können Fragen über das Large Language Model (LLM) hinzufügen, indem Sie den Schalter rechts aktivieren oder manuell wenn der Schalter inaktiv ist.\nZum Hinzufügen bitte den + Button verwenden.",
+    "difficultyTitle": "Schwierigkeitsstufe",
+    "questionsTitle": "Fragen zur jeweiligen Schwierigkeitsstufe",
+    "question": "Frage",
+    "newQuestionnaire": "<BITTE EDITIEREN>",
+    "useLLM": "LLM verwenden um Fragen zu generieren",
+    "generating": "Generiere Frage..."
+  },
+  "HeaderRow": {
+    "media": "Medien",
+    "channels": "Kanäle",
+    "history": "Verlauf"
+  },
+  "ExportTranscriptWindow": {
+    "title": "Transkript exportieren",
+    "closeButton": "Schließen",
+    "tooltipTranscriptExportButton": "Transkript exportieren",
+    "german": "Deutsch",
+    "english": "Englisch",
+    "textFile": "Text Datei",
+    "subtitleFile": "Untertitel Datei",
+    "selectLanguage": "Sprache auswählen",
+    "selectFileType": "Dateityp auswählen",
+    "download": "Datei herunterladen"
+  },
+  "IntervalComponent": {},
+  "Keywords": {
+    "unavailable": "Keine Schlagworte verfügbar, bitte verwenden Sie die Suchleiste um im Transkript zu suchen."
+  },
+  "LanguageSelector": {},
+  "LoadingBarComponent": {},
+  "LogoAndSearchbarRow": {},
+  "LogoAndVideoSearchbarRow": {},
+  "LogoBig": {},
+  "Marker": {},
+  "MarkerSequence": {},
+  "MenuBanner": {},
+  "EditQuestion": {
+    "addAnswer": "Antwort hinzufügen",
+    "edit": "Editieren",
+    "delete": "Löschen",
+    "saveExplanation": "Begründung übernehmen",
+    "saveQuestion": "Frage übernehmen",
+    "question": "Frage",
+    "questionPlaceholder": "Geben Sie hier die Frage ein",
+    "questionValidation": "Die Frage muss mindestens 5 Zeichen lang sein.",
+    "answer": "Antwort",
+    "answerPlaceholder": "Antwort eingeben",
+    "answerValidation": "Die Antwort muss mindestens 1 Zeichen lang sein.",
+    "explanation": "Begründung",
+    "explanationPlaceholder": "Geben Sie hier die Begründung ein",
+    "explanationValidation": "Die Begründung muss mindestens 5 Zeichen lang sein.",
+    "validationError": "Bitte korrigieren Sie die markierten Fehler."
+  },
+  "SearchBar": {},
+  "SearchButton": {},
+  "SearchTerms": {
+    "text": "Ihre Ergebnisse für"
+  },
+  "Separator": {
+    "tooltipSlideSyncButtonOn": "Folien-Synchronisation ausschalten",
+    "tooltipSlideSyncButtonOff": "Folien-Synchronisation einschalten",
+    "tooltipSwitchSlidesAndVideoButton": "Tausche Folien und Video",
+    "tooltipSnapshotButton": "Video-Schnappschuss erzeugen und für großes Bild-Sprachmodell als Kontext verwenden"
+  },
+  "Slideshow": {
+    "slide": "Folie"
+  },
+  "TranscriptChapterSelection": {
+    "addTopic": "Thema hinzufügen",
+    "topic": "Neues Thema",
+    "addAbove": "Oberhalb einfügen",
+    "addBelow": "Unterhalb einfügen",
+    "deleteTopic": "Löschen"
+  },
+  "TranscriptComponent": {
+    "transcript": "Transkript",
+    "hint": "Klicke um Hinweise zur Verwendung des automatisch erstellten Transkripts zu bekommen",
+    "decreaseFontSize": "Schrift verkleinern",
+    "increaseFontSize": "Schrift vergrößern"
+  },
+  "UploadModal": {
+    "confirm": "Bestätigen",
+    "close": "Schließen"
+  },
+  "UploadNavigation": {
+    "previousStep": "Verwerfen und vorheriger Schritt",
+    "nextStep": "Speichern und nächster Schritt",
+    "saveAndClose": "Speichern und schließen",
+    "saveAndFinish": "Speichern und fertigstellen",
+    "loading": "Verarbeiten...",
+    "translating": "Übersetzung läuft..."
+  },
+  "UploadOverviewItem": {
+    "copyButton": "Direktlink kopieren",
+    "deleteButton": "Löschen",
+    "overwriteButton": "Sofort fertigstellen",
+    "deleteVideo": "Video löschen",
+    "deleteVideoContent": "Möchten Sie das Video wirklich unwiderruflich löschen?",
+    "overwriteVideo": "Video fertigstellen",
+    "overwriteVideoContent": "Möchten Sie das Video wirklich ohne Editierung oder Kontrolle der Titel, Kapitel und Fragen fertigstellen? HAnS übernimmt keine Garantie für die Richtigkeit der Inhalte die durch KI erstellt wurden.",
+    "publishedLabel": "Veröffentlicht",
+    "listedLabel": "Gelistet",
+    "state": {
+      "processing": "In Verarbeitung",
+      "editing": "In Bearbeitung, {step} von 5 Schritten erledigt",
+      "finished": "Bearbeitung abgeschlossen"
+    },
+    "cta": {
+      "editing_0": "Bearbeitung starten",
+      "editing": "Bearbeitung fortsetzen",
+      "redo": "Neu bearbeiten"
+    }
+  },
+  "VideoCard": {},
+  "VideoDescription": {},
+  "VideoExternalLinks": {
+    "videos": "Videos",
+    "science": "Wissenschaft",
+    "news": "News",
+    "wiki": "Wiki",
+    "pictures": "Bilder",
+    "social": "Social",
+    "other": "Weitere"
+  },
+  "VideoPlayerPage": {},
+  "VideoPlayer": {
+    "text": "Um dieses Video zu sehen, aktivieren Sie bitte JavaScript und verwenden Sie einen Webbrowser, der",
+    "link": "HTML5-Video unterstützt.",
+    "controlBarFullscreenToggle": "Vollbild",
+    "controlBarClosedCaptionsButton": "Untertitel",
+    "controlBarMute": "Stummschalten",
+    "controlBarSettingsMenu": "Einstellungen",
+    "controlBarUnmute": "Lautschalten",
+    "controlBarPause": "Pause",
+    "controlBarPlay": "Abspielen",
+    "controlBarPlaybackRateMenuButton": "Wiedergabegeschwindigkeit",
+    "controlBarSkipForward": "10 Sekunden vorwärts springen",
+    "controlBarSkipBackward": "10 Sekunden rückwärts springen"
+  },
+  "VideoPlayerInfo": {
+    "title": "Video Player Info",
+    "text": "Debug-Informationen zur aktuellen Wiedergabe. Bei Problemen prüfen Sie folgenden Link:",
+    "testDASH": "Teste MPEG-DASH Streaming",
+    "testHLS": "Teste MPEG-HLS Streaming",
+    "statistics": "Statistiken",
+    "bandwidth": "Bandbreite",
+    "currentTime": "Zeit",
+    "duration": "Dauer",
+    "mediaRequests": "Medienzugriffe",
+    "mediaRequestsAborted": "Abgebrochene Medienzugriffe",
+    "mediaRequestsErrored": "Fehlerhafte Medienzugriffe",
+    "mediaRequestsTimedout": "Zeitüberschreitende Medienzugriffe",
+    "playbackQuality": "Wiedergabe Qualität",
+    "creationTime": "Erstellzeit",
+    "totalVideoFrames": "Gesamtzahl an Frames",
+    "droppedVideoFrames": "Gesamtzahl verworfener Frames",
+    "closeButton": "Schließen"
+  },
+  "VideoPlayerSettings": {
+    "controlBarInfoMenu": "Informationen",
+    "controlBarQualityMenu": "Qualität"
+  },
+  "VideoPlayerQuestion": {
+    "title": "Wiedergabe fortsetzen?",
+    "textBeforeTime": "Sie haben noch",
+    "textAfterTime": "Sekunden für die Auswahl.",
+    "cancel": "Abbruch",
+    "continue": "Wiedergabe fortsetzen"
+  },
+  "VideoSearchBar": {
+    "searchtext": "Transkript durchsuchen",
+    "searchSlidestext": "Folien durchsuchen",
+    "notfound": "Nicht gefunden..."
+  },
+  "VideoShortSummary": {
+    "headline": "Zusammenfassung",
+    "hint": "Klicke um Hinweise zur Verwendung der automatisch erstellten Zusammenfassung zu bekommen"
+  },
+  "VideoSummarySearchHighlights": {
+    "headline": "Suchergebnisse im Transkript",
+    "hint": "Klicke um Hinweise zur Verwendung des automatisch erstellten Transkripts zu bekommen"
+  },
+  "VideoTopics": {
+    "topics": "Themen",
+    "hint": "Klicke um Hinweise zur Verwendung der automatisch erstellten Themen zu bekommen",
+    "showless": "Weniger zeigen",
+    "showmore": "mehr"
+  },
+  "WorkbenchIntervalTabContent": {
+    "foundtext": "Ergebnisse gefunden"
+  },
+  "WorkbenchTab": {},
+  "WorkbenchTabContent": {},
+  "WorkbenchTabs": {},
+  "ErrorPage": {
+    "searchplaceholder": "Suche Medien"
+  }
+}

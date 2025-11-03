@@ -1,0 +1,37 @@
+{
+  "token": {
+    "type": "BearerToken",
+    "apiAccessToken": "an OAuth2 bearer token",
+    "expiresIn": 259200
+  },
+  "metaUrn": "metadb:meta:id:sintel",
+  "input": [
+    {
+      "urn": "assetdb:raw:Sintel.test.pdf",
+      "filename": "Sintel.test.pdf",
+      "mime-type": "application/pdf",
+      "hans-type": "slides",
+      "locale": "en"
+    },
+    {
+      "urn": "assetdb:raw:Sintel.test.timestamps.json",
+      "filename": "Sintel.test.timestamps.json",
+      "mime-type": "application/json",
+      "hans-type": "timestamps",
+      "locale": "en"
+    },
+    {
+      "urn": "assetdb:raw:Sintel.test.mp4",
+      "filename": "Sintel.test.mp4",
+      "mime-type": "video/mp4",
+      "hans-type": "video",
+      "locale": "en"
+    }
+  ],
+  "output": [
+    {
+      "backend": "hans_backend",
+      "frontend": "hans_frontend"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+setuptools-rust
+tqdm
+ffmpeg-python
+transformers>=4.37.0
+openai-whisper==20231117
+whisper-s2t==1.3.0
+platformdirs
+markupsafe
+pydantic

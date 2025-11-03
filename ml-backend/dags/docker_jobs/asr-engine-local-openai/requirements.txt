@@ -1,0 +1,7 @@
+setuptools-rust
+tqdm
+ffmpeg-python
+numpy==1.23.5
+transformers>=4.37.0
+numba
+openai-whisper==20231117
