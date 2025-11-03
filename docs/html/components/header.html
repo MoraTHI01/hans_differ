@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <style>
+        header {
+            background-color: #2959D6;
+        }
+
+        .search-bar {
+            width: 300px;
+        }
+
+        .img-btn {
+            height: auto;
+            width: 20px;
+        }
+
+        .menu {
+            display: inline-block;
+        }
+    </style>
+
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+<div class="container">
+
+    <!-- header row -->
+    <header class="row">
+        <!-- column for left buttons -->
+        <div class="col-9">
+
+            <!-- videos button -->
+            <button class="btn btn-container">
+                <img src="../icons/play-btn.svg" alt="play-btn" class="img-fluid img-btn">
+                <span>Videos</span>
+            </button>
+            <!-- videos button end -->
+
+            <!-- channels button -->
+            <button class="btn btn-container">
+                <img src="../icons/layers.svg" alt="channels-btn" class="img-fluid img-btn">
+                Channels
+            </button>
+            <!-- channels button end-->
+        </div>
+        <!-- column for left buttons end -->
+
+        <!-- column for right buttons -->
+        <div class="col-3">
+            <!-- login button -->
+            <button class="btn btn-container float-end"><img src="../icons/person.svg" alt="login-btn"
+                                                             class="img-fluid img-btn">
+                Login
+            </button>
+            <!-- login button end -->
+        </div>
+        <!-- column for right buttons end -->
+    </header>
+    <!-- header row end -->
+
+    <!-- logo and searchbar row -->
+    <div class="row align-items-center">
+        <!-- log column -->
+        <img src="../images/hans_full.svg" alt="logo" class="col-3 my-3 img-fluid">
+        <!-- searchbar column -->
+        <div class="col-6 d-flex justify-content-center">
+            <div class="form search-bar" style="position: relative">
+                <img src="../icons/search.svg" alt="search" style="position: absolute; top: 10px; right: 10px">
+                <input class="form-control form-input" style="text-indent: 20px" type="text" name="search" id="search"
+                       placeholder="Search for everything">
+            </div>
+        </div>
+        <!-- searchbar column end -->
+
+        <!-- empty column -->
+        <div class="col-3">
+        </div>
+        <!-- empty column end -->
+
+    </div>
+    <!-- logo and searchbar row end -->
+
+    <!-- recently added -->
+    <div class="row">
+        <div class="col-6 col-md-4">
+            <div class="menu p-2 my-1 rounded border">Recently added Videos</div>
+        </div>
+    </div>
+    <!-- recently added end-->
+
+</div>
+
+</body>
+</html>̵

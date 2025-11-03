@@ -1,0 +1,66 @@
+@startuml Overview
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/apache>
+!include <logos/django>
+!include <logos/docker>
+!include <logos/firefox>
+!include <logos/flask>
+!include <logos/mongodb>
+!include <logos/postgresql>
+!include <logos/redis>
+
+package "frontend\n<$docker>" {
+[Vue.js] as vuejs
+[<$flask>] as flask
+[<$apache>\napache] as apache
+interface HTTPS as https
+vuejs - flask
+flask - apache
+apache - https
+}
+
+package "backend" {
+component "<$docker>\nadminer\n\nadminer\nDatabase administration" as adminer
+component "<$docker>\nassetdb\n\n<&spreadsheet*4>\nminio\nPermanent asset storage" as assetdb
+component "<$docker>\nmediadb\n\n<&spreadsheet*4>\nminio\nMedia storage" as mediadb
+component "<$docker>\nmetadb\n\n<$mongodb>\nMain database" as metadb
+component "<$docker>\nsearchengine\n\nOpenSearch\nSearch media content" as searchengine
+component "<$docker>\nsearchengine-dashboard\n\nOpenSearch-dashboards\nSearchengine administration" as searchenginedashboard
+}
+
+package "ml-backend" {
+component "<$docker>\nairflow\n\n<$airflow>\nAuthor, schedule and monitor workflows" as airflow
+component "<$docker>\nairflow-adminer\n\nadminer\nAirflow database administration" as airflowadminer
+component "<$docker>\nairflow-docker-proxy\n\n<$airflow>\nProxy to docker engine" as airflowdockerproxy
+component "<$docker>\nairflow-postgresql\n\n<$postgresql>\nAirflow main database" as airflowpostgres
+component "<$docker>\nairflow-redis\n\n<$redis>\nAirflow task database" as airflowpostgres
+component "<$docker>\nassetdb-temp\n\n<&spreadsheet*4>\nminio\nTemporary asset storage" as assetdbtemp
+}
+
+/'
+assetdbtemp <--> assetdb #orange;line.dotted;text:orange   : PROVIDE FINAL ML-\nPROCESSING ASSETS
+assetdbtemp <--> mediadb #orange;line.dotted;text:orange   : PROVIDE FINAL MEDIA ASSETS
+assetdbtemp <--> metadb #orange;line.dotted;text:orange   : PROVIDE FINAL META DATA
+'/
+
+cloud "cloud" #WhiteSmoke {
+  [DFN AAI\nShibboleth authorization] as dfn #SkyBlue
+  [Moodle\nE-Learning platform] as moodle #SkyBlue
+  [ViMP\nVideo platform] as vimp #SkyBlue
+}
+flask <--> moodle #blue;line.dotted;text:blue   : REST API
+flask <--> vimp #blue;line.dotted;text:blue   : REST API
+dfn <--> apache #red;line.dotted;text:red   : AUTHORIZATION
+
+/'
+flask <--> mediadb #green;line.dotted;text:green   : PROVIDE MEDIA
+flask <--> metadb #green;line.dotted;text:green   : PROVIDE META DATA
+flask <--> airflow #blue;line.dotted;text:blue   : REST API
+flask <--> assetdbtemp #orange;line.dotted;text:orange   : INITIAL UPLOAD
+'/
+
+@enduml

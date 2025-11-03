@@ -1,0 +1,37 @@
+@startuml search-sequence
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/flask>
+
+actor User as user
+participant "Vue.js\nfrontend" as vuejs
+participant "<$flask>\nfrontend" as flask
+
+database "mediadb\nbackend" as mediadb
+database "searchengine\nbackend" as searchengine
+
+rnote over user : User enters the webpage
+activate vuejs
+user -> vuejs : enter keyword in the searchfield
+user -> vuejs : presses search button
+vuejs -> flask : https post search
+activate flask
+flask -> searchengine : query media files
+activate searchengine
+searchengine -> searchengine : searching for keywords in the index
+searchengine -> flask : provide media file ids
+deactivate searchengine
+flask -> vuejs : provide media file ids
+vuejs -> flask : request thumbnails for found media files
+flask -> mediadb : request thumbnails for found media files
+activate mediadb
+flask <- mediadb : provide thumbnails for found media files
+deactivate mediadb
+flask -> vuejs : load found media file thumbnails
+deactivate flask
+vuejs -> user : visualize found media files
+deactivate vuejs
+@enduml

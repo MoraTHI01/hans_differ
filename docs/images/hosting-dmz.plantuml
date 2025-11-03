@@ -1,0 +1,72 @@
+@startuml hosting-dmz
+
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/apache>
+!include <logos/django>
+!include <logos/docker>
+!include <logos/firefox>
+!include <logos/flask>
+!include <logos/mongodb>
+!include <logos/postgresql>
+!include <logos/redis>
+
+nwdiag {
+
+  group authenticationX509 {
+    color = "#Green";
+    description = "**x.509 certificate authentication**";
+    mlbackend;
+    frontend;
+  }
+
+  group authenticationX509 {
+    color = "#LightSkyBlue";
+    description = "**backend**";
+    assetdb;
+    mediadb;
+    metadb;
+    searchengine;
+  }
+
+  network internalNetworkLocation1 {
+      address = "172.x.x.x/24";
+      assetdbtemp [address = "172.x.x.100",  description = "<&spreadsheet*4>\n assetdb-temp", shape = database];
+      firewall1 [description = "firewall"];
+  }
+
+  network dmzLocation1 {
+      address = "211.x.x.x/24"
+      firewall1 [description = "firewall"];
+      // set multiple addresses (using comma)
+      mlbackend [address = "211.x.x.1, 211.x.x.20",  description = "<$airflow>\nml-backend"];
+      router2 [description = "router"];
+  }
+
+  router2 -- internet;
+
+  internet [description = "internet", shape = cloud ];
+
+  internet -- router1;
+
+  network dmzLocation2 {
+      address = "210.x.x.x/24"
+      router1 [description = "router"];
+      // set multiple addresses (using comma)
+      frontend [address = "210.x.x.1, 210.x.x.20",  description = "<$apache>\nApache\n<$flask>\nfrontend"];
+      firewall2 [description = "firewall"];
+  }
+
+  network internalNetworkLocation2 {
+      address = "172.x.x.x/24";
+      firewall2 [description = "firewall"];
+      assetdb [address = "172.x.x.100",  description = "<&spreadsheet*4>\n assetdb", shape = database];
+      mediadb [address = "172.x.x.101",  description = "<&spreadsheet*4>\n mediadb", shape = database];
+      metadb [address = "172.x.x.101",  description = "<$mongodb>\n metadb", shape = database];
+      searchengine [address = "172.x.x.101",  description = "<&spreadsheet*4>\n searchengine", shape = database];
+  }
+}
+@enduml
