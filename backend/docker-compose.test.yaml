@@ -1,0 +1,50 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  assetdb:
+    ports:
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "minio123"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
+
+  assetdb-init:
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "minio123"
+    command:
+      - -c
+      - |
+        ./init.sh -d "assetdb" -p 9001 -b assets,raw,error -t raw -f files/sintel/Sintel.test.timestamps.json,files/sintel/Sintel.test.pdf,files/sintel/Sintel.test.mp4
+
+  mediadb:
+    ports:
+      - 9000:9000
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "minio123"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+
+  mediadb-init:
+    environment:
+      MINIO_ROOT_USER: "minio"
+      MINIO_ROOT_PASSWORD: "minio123"
+    command:
+      - -c
+      - |
+        ./init.sh -d "mediadb" -p 9000 -b videos,podcasts,error
+
+  metadb:
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: meta
+
+networks:
+  data-backend-tier:
+    name: ${HANS_TEST_NETWORK_NAME}
+    external: true

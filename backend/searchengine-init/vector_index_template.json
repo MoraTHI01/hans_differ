@@ -1,0 +1,95 @@
+{
+  "index_patterns": ["indexname_placeholder"],
+  "template": {
+    "mappings": {
+      "properties": {
+        "lecture_id": {
+          "type": "keyword"
+        },
+        "chunk_id": {
+          "type": "keyword"
+        },
+        "chunk_index": {
+          "type": "integer"
+        },
+        "chunk_start": {
+          "type": "float"
+        },
+        "chunk_end": {
+          "type": "float"
+        },
+        "chunk_text": {
+          "type": "text"
+        },
+        "title": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "course_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "course": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "faculty_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "faculty": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "university_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "university": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "language": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "tags": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "lecturer": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "semester": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "embedding": {
+          "type": "knn_vector",
+          "dimension": 512,
+          "method": {
+            "name": "hnsw",
+            "space_type": "cosinesimil",
+            "engine": "nmslib"
+          }
+        }
+      }
+    },
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "index.knn": true,
+      "analysis": {
+        "analyzer": {
+          "standard_analyzer_allfields": {
+            "tokenizer": "lowercase"
+          },
+          "preprocess_lowercase": {
+            "tokenizer": "lowercase"
+          }
+        }
+      }
+    }
+  }
+}

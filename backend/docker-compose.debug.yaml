@@ -1,0 +1,39 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  metadb-ui:
+    image: mongo-express
+    container_name: hans-backend-metadb-ui
+    hostname: metadb-ui-backend
+    restart: always
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=${HANS_BACKEND_METADB_HOST:-metadb}
+      - ME_CONFIG_MONGODB_PORT=${HANS_BACKEND_METADB_PORT:-27017}
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=${HANS_BACKEND_METADB_ROOT_USER:-root}
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=${HANS_BACKEND_METADB_ROOT_PASSWORD:-password}
+      - ME_CONFIG_BASICAUTH_USERNAME=${HANS_BACKEND_METADB_UI_LOGIN:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${HANS_BACKEND_METADB_UI_PASSWORD:-password}
+      - ME_CONFIG_OPTIONS_EDITORTHEME=ambiance
+    depends_on:
+      - metadb
+    ports:
+      - "8081:8081"
+    networks:
+      - data-backend-tier
+  searchengine-dashboard:
+    build: searchengine-dashboard
+    container_name: hans-backend-searchengine-dashboard
+    hostname: searchengine-dashboard
+    restart: always
+    expose:
+      - 5601
+    environment:
+      - 'OPENSEARCH_HOSTS=["http://hans-backend-searchengine-node1:${HANS_BACKEND_OPENSEARCH_PORT:-9200}","http://hans-backend-searchengine-node2:9201"]' # Security is disabled for the nodes, using http instead of https here
+      - "DISABLE_SECURITY_DASHBOARDS_PLUGIN=true" # disables security dashboards plugin in OpenSearch Dashboards
+    depends_on:
+      - searchengine-node1
+      - searchengine-node2
+    networks:
+      - data-backend-tier
+    user: $DOCKER_USER

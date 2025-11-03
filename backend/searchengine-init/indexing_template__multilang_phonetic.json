@@ -1,0 +1,147 @@
+{
+  "index_patterns": ["indexname_placeholder"],
+  "template": {
+    "mappings": {
+      "properties": {
+        "timestamp": {
+          "type": "date",
+          "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+        },
+        "title": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "course_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "course": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "faculty_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "faculty": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "university_acronym": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "university": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "language": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "tags": {
+          "type": "keyword",
+          "normalizer": "lowercase"
+        },
+        "lecturer": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "semester": {
+          "type": "text",
+          "analyzer": "standard_analyzer_allfields"
+        },
+        "asr_result_de": {
+          "type": "text",
+          "analyzer": "standard_insert_analyzer_german"
+        },
+        "asr_result_en": {
+          "type": "text",
+          "analyzer": "standard_insert_analyzer_english"
+        }
+      }
+    },
+    "settings": {
+      "number_of_shards": 1,
+      "analysis": {
+        "analyzer": {
+          "standard_analyzer_allfields": {
+            "tokenizer": "lowercase"
+          },
+          "standard_insert_analyzer_german": {
+            "tokenizer": "lowercase",
+            "filter": ["german_stop", "german_phonetic"]
+          },
+          "standard_insert_analyzer_english": {
+            "tokenizer": "lowercase",
+            "filter": ["english_stop", "english_phonetic"]
+          },
+          "search_analyzer_whitespace_phonetic_german": {
+            "tokenizer": "whitespace",
+            "filter": ["german_phonetic"]
+          },
+          "search_analyzer_whitespace_phonetic_english": {
+            "tokenizer": "whitespace",
+            "filter": ["english_phonetic"]
+          },
+          "preprocess_lowercase": {
+            "tokenizer": "lowercase"
+          },
+          "english_text_analyzer": {
+            "tokenizer": "lowercase",
+            "filter": ["english_stop", "english_phonetic"]
+          },
+          "german_text_analyzer": {
+            "tokenizer": "lowercase",
+            "filter": ["german_stop", "german_phonetic"]
+          },
+          "search_analyzer_multilang_wPhonetic": {
+            "tokenizer": "lowercase",
+            "filter": ["german_stop", "english_stop", "german_phonetic", "english_phonetic"]
+          },
+          "search_analyzer_multilang_wPhonetic_wildcardPossible": {
+            "tokenizer": "whitespace",
+            "filter": ["german_phonetic", "english_phonetic"]
+          },
+          "search_analyzer_multilang_woPhonetic": {
+            "tokenizer": "lowercase",
+            "filter": ["german_stop", "english_stop"]
+          },
+          "search_analyzer_multilang_wildcardPossible": {
+            "tokenizer": "whitespace"
+          }
+        },
+        "filter": {
+          "english_stemmer_light": {
+            "type": "stemmer",
+            "name": "light_english"
+          },
+          "english_stop": {
+            "type": "stop",
+            "stopwords": "_english_"
+          },
+          "english_phonetic": {
+            "type": "phonetic",
+            "encoder": "double_metaphone",
+            "languageset": "english",
+            "replace": false
+          },
+          "german_stemmer_light": {
+            "type": "stemmer",
+            "name": "light_german"
+          },
+          "german_stop": {
+            "type": "stop",
+            "stopwords": "_german_"
+          },
+          "german_phonetic": {
+            "type": "phonetic",
+            "encoder": "double_metaphone",
+            "languageset": "german",
+            "replace": false
+          }
+        }
+      }
+    }
+  }
+}

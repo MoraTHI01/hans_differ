@@ -1,0 +1,357 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  assetdb:
+    build: assetdb
+    container_name: hans-backend-assetdb
+    hostname: ${HANS_BACKEND_ASSETDB_HOST:-assetdb}
+    restart: always
+    volumes:
+      - ./data/data-assetdb:/data
+    expose:
+      - ${HANS_BACKEND_ASSETDB_PORT:-9001}
+    environment:
+      MINIO_ROOT_USER: ${HANS_BACKEND_ASSETDB_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_BACKEND_ASSETDB_ROOT_PASSWORD:-minio123}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${HANS_BACKEND_CORS_ALLOW_ORIGIN:-localhost}
+    command: server --address 0.0.0.0:${HANS_BACKEND_ASSETDB_PORT:-9001} --console-address 0.0.0.0:38588 /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${HANS_BACKEND_ASSETDB_PORT:-9001}/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - data-backend-tier
+
+  assetdb-init:
+    build: ../common/db-init
+    container_name: hans-backend-assetdb-init
+    entrypoint: /bin/bash
+    environment:
+      MINIO_ROOT_USER: ${HANS_BACKEND_ASSETDB_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_BACKEND_ASSETDB_ROOT_PASSWORD:-minio123}
+    command:
+      - -c
+      - |
+        ./init.sh -d ${HANS_BACKEND_ASSETDB_HOST:-assetdb} -p ${HANS_BACKEND_ASSETDB_PORT:-9001} -b assets,packages,raw,error
+    depends_on:
+      - assetdb
+    networks:
+      - data-backend-tier
+
+  manage-channel-packages:
+    build: manage-channel-packages
+    container_name: hans-backend-manage-channel-packages
+    environment:
+      # AIRFLOW
+      AIRFLOW_HOST: ${HANS_ML_BACKEND_AIRFLOW_HOST:-host.docker.internal}
+      AIRFLOW_PORT: ${HANS_ML_BACKEND_AIRFLOW_PORT:-8080}
+      AIRFLOW_ROOT_USER: ${HANS_ML_BACKEND_AIRFLOW_ROOT_USER:-airflow}
+      AIRFLOW_ROOT_PASSWORD: ${HANS_ML_BACKEND_AIRFLOW_ROOT_PASSWORD:-airflow}
+      # ASSETDB
+      MINIO_ASSETDB_HOST: ${HANS_BACKEND_ASSETDB_HOST:-assetdb}
+      MINIO_ASSETDB_PORT: ${HANS_BACKEND_ASSETDB_PORT:-9001}
+      MINIO_ASSETDB_ROOT_USER: ${HANS_BACKEND_ASSETDB_ROOT_USER:-minio}
+      MINIO_ASSETDB_ROOT_PASSWORD: ${HANS_BACKEND_ASSETDB_ROOT_PASSWORD:-minio123}
+      # MEDIADB
+      MINIO_MEDIADB_HOST: ${HANS_BACKEND_MEDIADB_HOST:-mediadb}
+      MINIO_MEDIADB_PORT: ${HANS_BACKEND_MEDIADB_PORT:-9000}
+      MINIO_MEDIADB_ROOT_USER: ${HANS_BACKEND_MEDIADB_ROOT_USER:-minio}
+      MINIO_MEDIADB_ROOT_PASSWORD: ${HANS_BACKEND_MEDIADB_ROOT_PASSWORD:-minio123}
+      # METADB
+      MONGO_METADB_HOST: ${HANS_BACKEND_METADB_HOST:-metadb}
+      MONGO_METADB_PORT: ${HANS_BACKEND_METADB_PORT:-27017}
+      MONGO_METADB_ROOT_USER: ${HANS_BACKEND_METADB_ROOT_USER:-root}
+      MONGO_METADB_ROOT_PASSWORD: ${HANS_BACKEND_METADB_ROOT_PASSWORD:-password}
+      MONGO_METADB_DATABASE: ${HANS_BACKEND_METADB_DATABASE:-meta}
+      # OPENSEARCH
+      OPENSEARCH_HOST: ${HANS_BACKEND_OPENSEARCH_HOST:-searchengine}
+      OPENSEARCH_PORT: ${HANS_BACKEND_OPENSEARCH_PORT:-9200}
+      OPENSEARCH_ROOT_USER: ${HANS_BACKEND_OPENSEARCH_ROOT_USER:-admin}
+      OPENSEARCH_ROOT_PASSWORD: ${HANS_BACKEND_OPENSEARCH_ROOT_PASSWORD:-admin}
+      OPENSEARCH_STANDARD_INDEX: ${HANS_BACKEND_OPENSEARCH_STANDARD_INDEX:-lecture_result_index_multilang_v01}
+      OPENSEARCH_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_VECTOR_INDEX:-lecture_result_vector_index_v01}
+      OPENSEARCH_SLIDES_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_SLIDES_VECTOR_INDEX:-lecture_slides_result_vector_index_v01}
+      OPENSEARCH_SUMMARIES_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_SUMMARIES_VECTOR_INDEX:-lecture_summaries_result_vector_index_v01}
+    volumes:
+      - ./channel-packages:/channel-packages
+    stdin_open: true
+    tty: true
+    # https://airflow.apache.org/docs/apache-airflow/stable/start/docker.html#docker-compose-yaml
+    # Allow http access to the docker host using host.docker.internal instead of localhost
+    extra_hosts:
+      - "${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}:host-gateway"
+    networks:
+      - data-backend-tier
+
+  mediadb:
+    build: mediadb
+    container_name: hans-backend-mediadb
+    hostname: ${HANS_BACKEND_MEDIADB_HOST:-mediadb}
+    restart: always
+    volumes:
+      - ./data/data-mediadb:/data
+    expose:
+      - ${HANS_BACKEND_MEDIADB_PORT:-9000}
+    environment:
+      MINIO_ROOT_USER: ${HANS_BACKEND_MEDIADB_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_BACKEND_MEDIADB_ROOT_PASSWORD:-minio123}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${HANS_BACKEND_CORS_ALLOW_ORIGIN:-localhost}
+    command: server --address 0.0.0.0:${HANS_BACKEND_MEDIADB_PORT:-9000} --console-address 0.0.0.0:38587 /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${HANS_BACKEND_MEDIADB_PORT:-9000}/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - data-backend-tier
+
+  mediadb-init:
+    build: ../common/db-init
+    container_name: hans-backend-mediadb-init
+    entrypoint: /bin/bash
+    environment:
+      MINIO_ROOT_USER: ${HANS_BACKEND_MEDIADB_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${HANS_BACKEND_MEDIADB_ROOT_PASSWORD:-minio123}
+    command:
+      - -c
+      - |
+        ./init.sh -d ${HANS_BACKEND_MEDIADB_HOST:-mediadb} -p ${HANS_BACKEND_MEDIADB_PORT:-9000} -b videos,podcasts,error
+    depends_on:
+      - mediadb
+    networks:
+      - data-backend-tier
+
+  metadb:
+    build: metadb
+    container_name: hans-backend-metadb
+    hostname: ${HANS_BACKEND_METADB_HOST:-metadb}
+    restart: always
+    expose:
+      - ${HANS_BACKEND_METADB_PORT:-27017}
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${HANS_BACKEND_METADB_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${HANS_BACKEND_METADB_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${HANS_BACKEND_METADB_DATABASE:-meta}
+    volumes:
+      - ./metadb/mongodb-init.js:/metadb/mongodb-init.js:ro
+      - ./data/data-metadb:/data
+    networks:
+      - data-backend-tier
+
+  # OpenSearch
+  # https://opensearch.org/docs/latest/opensearch/install/docker/
+  # Security is disabled, to activate security see:
+  # https://opensearch.org/docs/latest/opensearch/install/docker-security/
+  searchengine-node1:
+    build: searchengine
+    container_name: hans-backend-searchengine-node1
+    hostname: ${HANS_BACKEND_OPENSEARCH_HOST:-searchengine}
+    restart: always
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=hans-backend-searchengine-node1
+      - discovery.seed_hosts=hans-backend-searchengine-node1,hans-backend-searchengine-node2
+      - cluster.initial_master_nodes=hans-backend-searchengine-node1,hans-backend-searchengine-node2
+      - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+      - "DISABLE_INSTALL_DEMO_CONFIG=true" # disables execution of install_demo_configuration.sh bundled with security plugin, which installs demo certificates and security configurations to OpenSearch
+      - "DISABLE_SECURITY_PLUGIN=true" # disables security plugin entirely in OpenSearch by setting plugins.security.disabled: true in opensearch.yml
+      # - "discovery.type=single-node" # disables bootstrap checks that are enabled when network.host is set to a non-loopback address
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536 # maximum number of open files for the OpenSearch user, set to at least 65536 on modern systems
+        hard: 65536
+    volumes:
+      - ./data/data-searchengine-node1:/usr/share/opensearch/data
+    expose:
+      - ${HANS_BACKEND_OPENSEARCH_PORT:-9200}
+      - 9600 # required for Performance Analyzer
+    networks:
+      - data-backend-tier
+    user: $DOCKER_USER
+
+  searchengine-node2:
+    build: searchengine
+    container_name: hans-backend-searchengine-node2
+    restart: always
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=hans-backend-searchengine-node2
+      - discovery.seed_hosts=hans-backend-searchengine-node1,hans-backend-searchengine-node2
+      - cluster.initial_master_nodes=hans-backend-searchengine-node1,hans-backend-searchengine-node2
+      - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+      - "DISABLE_INSTALL_DEMO_CONFIG=true" # disables execution of install_demo_configuration.sh bundled with security plugin, which installs demo certificates and security configurations to OpenSearch
+      - "DISABLE_SECURITY_PLUGIN=true" # disables security plugin entirely in OpenSearch by setting plugins.security.disabled: true in opensearch.yml
+      # - "discovery.type=single-node" # disables bootstrap checks that are enabled when network.host is set to a non-loopback address
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    depends_on:
+      - searchengine-node1
+    volumes:
+      - ./data/data-searchengine-node2:/usr/share/opensearch/data
+    networks:
+      - data-backend-tier
+    user: $DOCKER_USER
+
+  searchengine-init:
+    build: searchengine-init
+    container_name: hans-backend-searchengine-init
+    environment:
+      OPENSEARCH_HOST: ${HANS_BACKEND_OPENSEARCH_HOST:-searchengine}
+      OPENSEARCH_PORT: ${HANS_BACKEND_OPENSEARCH_PORT:-9200}
+      OPENSEARCH_ROOT_USER: ${HANS_BACKEND_OPENSEARCH_ROOT_USER:-admin}
+      OPENSEARCH_ROOT_PASSWORD: ${HANS_BACKEND_OPENSEARCH_ROOT_PASSWORD:-admin}
+      OPENSEARCH_STANDARD_INDEX: ${HANS_BACKEND_OPENSEARCH_STANDARD_INDEX:-lecture_result_index_multilang_v01}
+      OPENSEARCH_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_VECTOR_INDEX:-lecture_result_vector_index_v01}
+      OPENSEARCH_SLIDES_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_SLIDES_VECTOR_INDEX:-lecture_slides_result_vector_index_v01}
+      OPENSEARCH_SUMMARIES_VECTOR_INDEX: ${HANS_BACKEND_OPENSEARCH_SUMMARIES_VECTOR_INDEX:-lecture_summaries_result_vector_index_v01}
+      OPENSEARCH_VECTOR_SIZE: ${HANS_BACKEND_OPENSEARCH_VECTOR_SIZE:-1024}
+    volumes:
+      - ./searchengine-init/indexing_template__multilang_phonetic.json:/templates/indexing_template__multilang_phonetic.json:ro
+      - ./searchengine-init/vector_index_template.json:/templates/vector_index_template.json:ro
+      - ./searchengine-init/summary_vector_index_template.json:/templates/summary_vector_index_template.json:ro
+    depends_on:
+      - searchengine-node1
+      - searchengine-node2
+    networks:
+      - data-backend-tier
+    user: $DOCKER_USER
+
+  webserver:
+    build: nginx
+    container_name: hans-backend-webserver
+    environment:
+      # https://github.com/docker-library/docs/tree/master/nginx#using-environment-variables-in-nginx-configuration-new-in-119
+      NGINX_HOST: ${HANS_BACKEND_HOST:-localhost}
+      NGINX_PORT: ${HANS_BACKEND_PORT:-8089}
+      # ASSETDB
+      MINIO_ASSETDB_HOST: ${HANS_BACKEND_ASSETDB_HOST:-assetdb}
+      MINIO_ASSETDB_PORT: ${HANS_BACKEND_ASSETDB_PORT:-9001}
+      # MEDIADB
+      MINIO_MEDIADB_HOST: ${HANS_BACKEND_MEDIADB_HOST:-mediadb}
+      MINIO_MEDIADB_PORT: ${HANS_BACKEND_MEDIADB_PORT:-9000}
+      # MATOMO
+      MATOMO_HOST: ${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}
+      MATOMO_PORT: ${HANS_BACKEND_MATOMO_PORT:-80}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    expose:
+      - 27020 # Port for metadb currently not used
+    ports:
+      - ${HANS_BACKEND_PORT:-8089}:${HANS_BACKEND_PORT:-8089} # access assetdb or mediadb using url
+      # - 27020:27020 # Port for metadb
+    restart: always
+    depends_on:
+      - assetdb
+      - mediadb
+      - metadb
+      - searchengine-node1
+      - searchengine-node2
+      - matomo-webserver
+    networks:
+      - data-backend-tier
+
+  matomo-db:
+    build: matomo/matomo_db
+    container_name: hans-backend-matomo-db
+    hostname: matomo-db
+    volumes:
+      - ./data/matomo_mysql:/var/lib/mysql
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    networks:
+      - data-backend-tier
+
+  matomo-user-analytics:
+    build: matomo/matomo_analytics
+    container_name: hans-backend-matomo-user-analytics
+    hostname: matomo-user-analytics
+    links:
+      - matomo-db
+    volumes:
+      - ./data/matomo:/var/www/html:rw
+    env_file:
+      - ./matomo/matomo_analytics/matomo.env
+    depends_on:
+      - matomo-db
+    networks:
+      - data-backend-tier
+
+  matomo-webserver:
+    build: matomo/matomo_nginx
+    container_name: hans-backend-matomo-webserver
+    hostname: ${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}
+    environment:
+      # https://github.com/docker-library/docs/tree/master/nginx#using-environment-variables-in-nginx-configuration-new-in-119
+      NGINX_HOST: ${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}
+      NGINX_PORT: ${HANS_BACKEND_MATOMO_PORT:-80}
+    volumes:
+      - ./matomo/matomo_nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./matomo/matomo_nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./data/matomo:/var/www/html:ro
+    expose:
+      - ${HANS_BACKEND_MATOMO_PORT:-80}
+    depends_on:
+      - matomo-db
+      - matomo-user-analytics
+    networks:
+      - data-backend-tier
+
+  matomo-init:
+    build: matomo/matomo_init
+    environment:
+      MYSQL_DB_HOST: ${HANS_BACKEND_MATOMO_DBHOST:-matomo-db}
+      MYSQL_DB_NAME: ${HANS_BACKEND_MATOMO_DBNAME:-matomo}
+      MATOMO_HOST: ${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}
+      MATOMO_PORT: ${HANS_BACKEND_MATOMO_PORT:-80}
+      MATOMO_USERNAME: ${HANS_BACKEND_MATOMO_USER:-admin}
+      MATOMO_PASSWORD: ${HANS_BACKEND_MATOMO_PASSWORD:-adminadmin}
+      MATOMO_EMAIL: ${HANS_BACKEND_MATOMO_USEREMAIL:-admin@admin.de}
+      MATOMO_SITENAME: ${HANS_BACKEND_MATOMO_SITENAME:-HAnS}
+      MATOMO_SITEURL: ${HANS_BACKEND_MATOMO_SITEURL:-http://localhost}
+    container_name: hans-backend-matomo-init
+    hostname: matomo-init
+    volumes:
+      - ./data/matomo:/matomo:rw
+    depends_on:
+      - matomo-webserver
+      - matomo-user-analytics
+      - matomo-db
+    networks:
+      - data-backend-tier
+
+  #matomo-trackingexport:
+  #  build: matomo/matomo_trackingexport
+  #  environment:
+  #    MATOMO_HOST: http://${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}/
+  #    MATOMO_USERNAME: ${HANS_BACKEND_MATOMO_USER:-admin}
+  #    MATOMO_PASSWORD: ${HANS_BACKEND_MATOMO_PASSWORD:-adminadmin}
+  #  container_name: hans-backend-matomo-trackingexport
+  #  hostname: matomo-trackingexport
+  #  volumes:
+  #    - ./data/matomo_export:/export:rw
+  #  depends_on:
+  #    - matomo-webserver
+  #    - matomo-user-analytics
+  #    - matomo-db
+  #    - matomo-init
+  #  networks:
+  #    - data-backend-tier
+
+volumes:
+  static: {}
+
+networks:
+  data-backend-tier:
+    name: ${HANS_FB_NETWORK_NAME}
+    external: true
