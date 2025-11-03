@@ -1,0 +1,85 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Directories
+.DS_Store
+**/.DS_Store
+
+# Docker Environment Configuration
+*.env
+# Global config
+*.env.config
+
+# Backend data folders and config file
+backend/data/*
+backend/data/**
+backend/channel-packages/*
+backend/channel-packages/**
+backend/nginx/default.conf.template
+
+# Frontend config
+frontend/flask/api/auth/*.json
+frontend/flask/api/auth/*.pem
+frontend/flask/api/auth/.env
+frontend/flask/api/auth/.env-e
+frontend/vue/.env-e
+frontend/scripts/*.json
+frontend/scripts/*/*
+
+# Airflow related folders
+ml-backend/airflow
+ml-backend/logs
+ml-backend/dags/__pycache__
+
+# ml-backend data folders
+ml-backend/data/*
+ml-backend/data/**
+
+# PyCharm Workspace Configuration
+.idea
+__pycache__
+
+# Python virtual environments for local testing
+.venv/
+
+# ml-backend docker_jobs_common files in docker_jobs
+ml-backend/dags/docker_jobs/*/parse_xcom.py
+ml-backend/dags/docker_jobs/*/download_assetdb_temp.py
+ml-backend/dags/docker_jobs/*/upload_assetdb_temp.py
+ml-backend/dags/docker_jobs/*/modules
+ml-backend/dags/docker_jobs/*/modules/*
+ml-backend/dags/docker_jobs/*/modules/connectors
+ml-backend/dags/docker_jobs/*/modules/connectors/*
+
+# dev reports etc
+dev/load_test/report
