@@ -1,0 +1,67 @@
+{
+  "uuid": "fe3d7656-261a-41bd-a616-85c62c0320d2",
+  "raw_media": "test-mongo-db-entry-raw-media",
+  "raw_slides": "test-mongo-db-entry-raw-slides",
+  "title": "test-mongo-db-entry-title",
+  "language": "en",
+  "description": {
+    "course": "Test course",
+    "course_acronym": "TC",
+    "semester": "Summersemester 2022",
+    "lecturer": "Prof. Dr. Max Mustermann",
+    "faculty": "Informatik",
+    "faculty_acronym": "IN",
+    "faculty_color": "#000000",
+    "university": "Test university",
+    "university_acronym": "TU"
+  },
+  "thumbnails": {
+    "media": "test-mongo-db-entry-thumbnail-media.png",
+    "lecturer": "test-mongo-db-entry-thumbnail-lecturer.png"
+  },
+  "permissions": [
+    {
+      "type": "public",
+      "value": false
+    },
+    {
+      "type": "universityOnly",
+      "value": true
+    },
+    {
+      "type": "facultyOnly",
+      "value": false
+    },
+    {
+      "type": "studyTopicOnly",
+      "value": false
+    },
+    {
+      "type": "studentsOnly",
+      "value": false
+    }
+  ],
+  "licenses": [
+    {
+      "type": "CC0-1.0",
+      "name": "CC0 1.0 Universal Public Domain Dedication",
+      "acronym": "CC0 1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "value": true
+    },
+    {
+      "type": "CC-BY-4.0",
+      "name": "Attribution 4.0 International",
+      "acronym": "CC BY 4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/",
+      "value": false
+    },
+    {
+      "type": "CC-BY-SA-4.0",
+      "name": "Attribution-ShareAlike 4.0 International",
+      "acronym": "CC BY-SA 4.0",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "value": false
+    }
+  ]
+}

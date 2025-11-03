@@ -1,0 +1,11 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  # airflow-adminer could be used to check airflow-postgresql database content
+  adminer:
+    build: ../common/adminer
+    container_name: hans-ml-backend-adminer
+    restart: always
+    ports:
+      - ${HANS_ML_BACKEND_AIRFLOW_ADMINER_PORT}:8080
+    networks:
+      - ml-backend-tier

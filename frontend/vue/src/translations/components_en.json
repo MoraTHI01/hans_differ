@@ -1,0 +1,369 @@
+{
+  "BottomRow": {
+    "linkContact": "How to contact us",
+    "linkLegal": "Legal notice",
+    "linkDataProtection": "Data protection",
+    "generalNotes": "Terms of usage"
+  },
+  "ButtonDark": {},
+  "ButtonLight": {},
+  "ChannelCard": {},
+  "ChatLoading": {
+    "loading": "Loading services...",
+    "explanation": "The process takes some time, please wait."
+  },
+  "ChatComponent": {
+    "title": "Chat",
+    "closeButton": "Close",
+    "openChatButton": "Open chat"
+  },
+  "ChatContextWindow": {
+    "title": "Used context",
+    "closeButton": "Close",
+    "tooltipContextButton": "Show used context",
+    "transcript": "Transcript",
+    "slides": "Slides",
+    "slide": "Slide",
+    "snapshots": "Video snapshots",
+    "snapshot": "Video snapshot",
+    "transcriptContextEmpty": "No transcript sections as context available.",
+    "slideContextEmpty": "No slides in context.",
+    "snapshotContextEmpty": "No video snapshots in context."
+  },
+  "ChatInput": {
+    "citationPopoverTitle": "Excerpt from the transcript",
+    "citationPopoverSlideTitle": "Reference to slide",
+    "citationPopoverSlideLink": "S.",
+    "citationPopoverSnapshotTitle": "Reference to video snapshot",
+    "citationPopoverSnapshotLink": "V.",
+    "placeholder": "Send a message...",
+    "tooltipCopyButton": "Copy",
+    "tooltipRegenerateButton": "Regenerate",
+    "tooltipSendButton": "Send message",
+    "tooltipSendButtonContext": "Send message with context from transcript",
+    "tooltipSendButtonContextAndCite": "Send message with context from transcript and reply with quotes",
+    "tooltipSendButtonSnapshotContext": "Send message with video snapshot as context",
+    "tooltipTranslateToggleActive": "Turn off translation",
+    "tooltipTranslateToggleInactive": "Turn on translation",
+    "dropdownPromptOptionNormal": "Normal message",
+    "dropdownPromptOptionWithContext": "Message with context from transcript",
+    "dropdownPromptOptionWithContextAndCite": "Message with context from transcript and reply with quotes",
+    "dropdownPromptOptionWithSelectedTranscriptContext": "Message with selected context from transcript",
+    "dropdownPromptOptionWithSnapshotContext": "Message with video snapshot as context",
+    "dropdownOptionsClearChatHistory": "Clear chat history",
+    "dropdownOptionsInfo": "Info",
+    "errorAdaptingMessageContext": "Error connecting to the context processing service. Please try again later!",
+    "errorTranslateMessage": "Error connecting to the message translation service. Please try again later!",
+    "errorSendMessage": "Error when connecting to the large language model. Please try again later!",
+    "promptExampleShortSummary": "Please create a short summary with a maximum of 50 words.",
+    "promptExampleShortSummaryBtn": "Short Summary",
+    "promptExampleSummary": "Please create a summary with a minimum of 200 words.",
+    "promptExampleSummaryBtn": "Summary",
+    "promptExampleExercise": "Create an exercise that deepens the topic of the lecture and helps me to understand the material.",
+    "promptExampleExerciseBtn": "Exercise",
+    "promptExampleQuestionaire": "Create only one moderately difficult multiple choice question with 4 short answer choices marked by A), B), C), D) where only one solution is correct.",
+    "promptExampleQuestionaireBtn": "Questionaire",
+    "loading": "Loading...",
+    "slide": "Slide",
+    "currentSlide": ". Currently on [Slide ",
+    "tooltipDeleteSnapshotButton": "Delete video snapshot"
+  },
+  "ChatMessages": {
+    "errorRequestCanceled": "The request was canceled. Please try again.",
+    "errorRequestTimeout": "The request took too long. Please try again.",
+    "errorRequest": "The request failed. Please try again."
+  },
+  "ModelInfo": {
+    "modelId": "Model id",
+    "modelHash": "Model hash",
+    "modelType": "Model data type",
+    "modelMaxToken": "Maximum total number of tokens",
+    "maxNewToken": "Maximum number of newly generated tokens"
+  },
+  "ChatServiceInfo": {
+    "title": "Info",
+    "llmService": "LLM Service",
+    "vllmService": "VLLM Service",
+    "embeddingService": "Embeddings Service",
+    "translationService": "Translation Service",
+    "closeButton": "Close"
+  },
+  "ChatSettingsWindow": {
+    "title": "Settings",
+    "closeButton": "Close",
+    "tooltipSettingsButton": "Settings",
+    "llm": "Large Language Model",
+    "context": "Context",
+    "vision": "Vision",
+    "tutor": "Tutor",
+    "translation": "Translation Model",
+    "generalDescription": "The following settings configure the context involved for prompting the large language model. If no option is selected the model will rely on it´s training data (world knowledge).",
+    "modeContext": "Context Mode",
+    "switchContextDescription": "Use best matching text sections of the transcript and best matching slides text for the prompt context to lower hallucinations.",
+    "modeCitation": "Citation Mode",
+    "switchCitationDescription": "Instruct the large language model to cite the corresponding provided text sections of context mode during generation. This enables to interact with the large language model answers by clicking on the citations and display the corresponding text section or slide. The user is able to crosscheck the popup citation and the original answer to detect hallucinations.",
+    "modeSelectedContext": "Selected Section Mode",
+    "switchSelectedContextDescription": "Uses a self-selected section from the transcript as context. The section must first be marked with the mouse in the transcription under the video. All other contexts are discarded, therefore only the selected context should appear if the stack button is clicked.",
+    "modeVision": "Slide Image Input Mode",
+    "switchVisionDescription": "Press the key [ in the input field to use the current slide as the image input for the Vision Large Language Model to interact with the slide material. This allows, e.g. to ask a question about a drawn circuit on the current slide.",
+    "modeVisionSurroundingSlides": "Image Input Context",
+    "switchVisionSurroundingSlidesDescription": "Use the previous and next slides in addition to the specified slide as image input for the Vision Large Language Model.",
+    "modeVisionSnapshot": "Video Snapshot Input Mode",
+    "switchVisionSnapshotDescription": "Use a video snapshot as image input for the Vision Large Language Model to interact with the video material. For example, you can ask a question about a whiteboard calculation written live in the video.",
+    "actDescription": "The following settings change the way you interact with the large language model.",
+    "modeTutor": "Tutor Mode",
+    "switchTutorDescription": "The large language model is instructed to act as a learning tutor. This leads to several dialog steps to find solutions for queries with the large language model.",
+    "modeTranslation": "Translation Mode",
+    "switchTranslationDescription": "Translates the chat window text input into English. The big language model’s answer is translated back from English to German to display the final answer in the chat window. This mode can produce different results because most large language models have been trained with a larger amount of English text data. You can use the translation button on each response to see the original English answer."
+  },
+  "ConsentBannerMatomo": {
+    "text": "Dear visitor, we would like to analyze your usage of this website for research purposes and further development of HAnS with the web analytics tool Matomo (incl. Cookies). For further information about Matomo,",
+    "link": "click here",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "DropdownLogin": {
+    "login": "Login",
+    "api": "API",
+    "channel": "Channel",
+    "survey": "Survey",
+    "announcement": "Announcement",
+    "upload": "Upload",
+    "yourMedia": "Your Media",
+    "evaluation": "Evaluation",
+    "logout": "Logout"
+  },
+  "DynamicQuestionnaire": {
+    "lecturerQuestionnaires": "Questions approved by lecturers on the respective topic",
+    "generatedQuestionnaires": "Automatically pre-generated questions on the respective topic",
+    "dynamicQuestionnaires": "Dynamically generated questions by time interval",
+    "difficultyTitle": "Difficulty level",
+    "title": "Questions",
+    "closeButton": "Close",
+    "openQuestionnaireButton": "Open questions"
+  },
+  "QuestionnaireStatic": {
+    "loading": "Loading...",
+    "topic": "Topic"
+  },
+  "QuestionnaireWithInterval": {
+    "question": "Questions",
+    "explanation": "Explanation",
+    "hint": "Click to get instructions on how to use the automatically generated questions",
+    "showless": "Show less",
+    "showmore": "more",
+    "generating": "Generating question...",
+    "errorRequestCanceled": "Generation of the question was canceled. Please try again.",
+    "errorRequestTimeout": "Generating the question took too long. Please try again.",
+    "errorRequest": "Failed to generate the question. Please try again.",
+    "propertyIntervalLength": "Interval length for question generation:",
+    "minute": "minute",
+    "minutes": "minutes",
+    "loading": "Loading..."
+  },
+  "DifficultySelector": {
+    "easy": "Easy",
+    "medium": "Medium",
+    "difficult": "Difficult"
+  },
+  "EditChapter": {
+    "heading": "Questions on the topic",
+    "instructions": "Select a difficulty level to see the corresponding questions. There is at least one question for each difficulty level.\nYou can add questions via the Large Language Model (LLM) by activating the switch on the right or manually if the switch is inactive.\nPlease use the + button to add a question using your selected option.",
+    "difficultyTitle": "Difficulty level",
+    "questionsTitle": " Questions on the respective difficulty level",
+    "question": "Question",
+    "newQuestionnaire": "<PLEASE EDIT>",
+    "useLLM": "Use LLM to generate questions",
+    "generating": "Generating question..."
+  },
+  "ExportTranscriptWindow": {
+    "title": "Export transcript",
+    "closeButton": "Close",
+    "tooltipTranscriptExportButton": "Export transcript",
+    "german": "German",
+    "english": "English",
+    "textFile": "Text File",
+    "subtitleFile": "Subtitle File",
+    "selectLanguage": "Select Language",
+    "selectFileType": "Select File Type",
+    "download": "Download File"
+  },
+  "HeaderRow": {
+    "media": "Media",
+    "channels": "Channels",
+    "history": "History"
+  },
+  "IntervalComponent": {},
+  "Keywords": {
+    "unavailable": "No keywords available, please use the search bar to search in transcript."
+  },
+  "LanguageSelector": {},
+  "LoadingBarComponent": {},
+  "LogoAndSearchbarRow": {},
+  "LogoAndVideoSearchbarRow": {},
+  "LogoBig": {},
+  "Marker": {},
+  "MarkerSequence": {},
+  "MenuBanner": {},
+  "EditQuestion": {
+    "addAnswer": "Add answer",
+    "edit": "Edit",
+    "delete": "Delete",
+    "saveExplanation": "Accept explanation",
+    "saveQuestion": "Accept question",
+    "question": "Question",
+    "questionPlaceholder": "Enter the question here",
+    "questionValidation": "Question must be at least 5 characters long.",
+    "answer": "Answer",
+    "answerPlaceholder": "Enter answer",
+    "answerValidation": "Answer must be at least 1 character long.",
+    "explanation": "Explanation",
+    "explanationPlaceholder": "Enter the explanation here",
+    "explanationValidation": "Explanation must be at least 5 characters long.",
+    "validationError": "Please correct the highlighted errors."
+  },
+  "SearchBar": {},
+  "SearchButton": {},
+  "SearchTerms": {
+    "text": "Your results for"
+  },
+  "Separator": {
+    "tooltipSlideSyncButtonOn": "Turn off slide synchronization",
+    "tooltipSlideSyncButtonOff": " Turn on slide synchronization",
+    "tooltipSwitchSlidesAndVideoButton": "Switch slides and video",
+    "tooltipSnapshotButton": "Take a video snapshot and use it as context for the Vision Large Language Model"
+  },
+  "Slideshow": {
+    "slide": "Slide"
+  },
+  "TranscriptChapterSelection": {
+    "addTopic": "Add new topic",
+    "topic": "New topic",
+    "addAbove": "Add above",
+    "addBelow": "Add below",
+    "deleteTopic": "Delete"
+  },
+  "TranscriptComponent": {
+    "transcript": "Transcript",
+    "hint": "Click to get instructions on how to use the automatically generated transcript",
+    "decreaseFontSize": "Decrease font size",
+    "increaseFontSize": "Increase font size"
+  },
+  "UploadModal": {
+    "confirm": "Confirm",
+    "close": "Close"
+  },
+  "UploadNavigation": {
+    "previousStep": "Discard and previous step",
+    "nextStep": "Save and next step",
+    "saveAndClose": "Save and close",
+    "saveAndFinish": "Save and finish",
+    "loading": "Processing...",
+    "translating": "Translation ongoing..."
+  },
+  "UploadOverviewItem": {
+    "copyButton": "Copy direct link",
+    "deleteButton": "Delete",
+    "overwriteButton": "Complete immediately",
+    "deleteVideo": "Delete video",
+    "deleteVideoContent": "Do you really want to delete this video? This action cannot be undone.",
+    "overwriteVideo": "Complete video",
+    "overwriteVideoContent": "Do you really want to finalize the video without editing or checking the titles, chapters and questions? HAnS does not guarantee the accuracy of the content created by AI.",
+    "publishedLabel": "Published",
+    "listedLabel": "Listed",
+    "state": {
+      "processing": "Processing",
+      "editing": "Editing, {step} of 5 steps done",
+      "finished": "Editing complete"
+    },
+    "cta": {
+      "editing_0": "Start editing",
+      "editing": "Continue editing",
+      "redo": "Restart editing"
+    }
+  },
+  "VideoCard": {},
+  "VideoDescription": {},
+  "VideoExternalLinks": {
+    "videos": "Videos",
+    "science": "Science",
+    "news": "News",
+    "wiki": "Wiki",
+    "pictures": "Pictures",
+    "social": "Social",
+    "other": "Other"
+  },
+  "VideoPlayerPage": {},
+  "VideoPlayer": {
+    "text": "To view this video please enable JavaScript, and consider upgrading to a web browser that",
+    "link": "supports HTML5 video.",
+    "controlBarFullscreenToggle": "Fullscreen",
+    "controlBarClosedCaptionsButton": "Captions",
+    "controlBarMute": "Mute",
+    "controlBarSettingsMenu": "Settings",
+    "controlBarUnmute": "Unmute",
+    "controlBarPause": "Pause",
+    "controlBarPlay": "Play",
+    "controlBarPlaybackRateMenuButton": "Playback Rate",
+    "controlBarSkipForward": "Skip forward 10 seconds",
+    "controlBarSkipBackward": "Skip backward 10 seconds"
+  },
+  "VideoPlayerInfo": {
+    "title": "Video Player Info",
+    "text": "Debug information on the current playback. In case of problems, check the following link:",
+    "testDASH": "Test MPEG-DASH streaming",
+    "testHLS": "Test MPEG-HLS streaming",
+    "statistics": "Statistics",
+    "bandwidth": "Bandwidth",
+    "currentTime": "Current Time",
+    "duration": "Duration",
+    "mediaRequests": "Media Requests",
+    "mediaRequestsAborted": "Media Requests Aborted",
+    "mediaRequestsErrored": "Media Requests Errored",
+    "mediaRequestsTimedout": "Media Requests Timedout",
+    "playbackQuality": "Playback Quality",
+    "creationTime": "Creation Time",
+    "totalVideoFrames": "Total Video Frames",
+    "droppedVideoFrames": "Dropped Video Frames",
+    "closeButton": "Close"
+  },
+  "VideoPlayerSettings": {
+    "controlBarInfoMenu": "Information",
+    "controlBarQualityMenu": "Quality"
+  },
+  "VideoPlayerQuestion": {
+    "title": "Continue Playback?",
+    "textBeforeTime": "You have",
+    "textAfterTime": "seconds to choose.",
+    "cancel": "Cancel",
+    "continue": "Continue Playback"
+  },
+  "VideoSearchBar": {
+    "searchtext": "Search in transcript",
+    "searchSlidestext": "Search in slides",
+    "notfound": "Not found..."
+  },
+  "VideoShortSummary": {
+    "headline": "Summary",
+    "hint": "Click to get instructions on how to use the automatically generated summary"
+  },
+  "VideoSummarySearchHighlights": {
+    "headline": "Search results in transcript",
+    "hint": "Click to get instructions on how to use the automatically generated transcript"
+  },
+  "VideoTopics": {
+    "topics": "Topics",
+    "hint": "Click to get instructions on how to use the automatically generated topics",
+    "showless": "Show less",
+    "showmore": "more"
+  },
+  "WorkbenchIntervalTabContent": {
+    "foundtext": "results found"
+  },
+  "WorkbenchTab": {},
+  "WorkbenchTabContent": {},
+  "WorkbenchTabs": {},
+  "ErrorPage": {
+    "searchplaceholder": "Search for everything"
+  }
+}

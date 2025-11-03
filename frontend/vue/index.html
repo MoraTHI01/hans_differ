@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://cli.vuejs.org/guide/html-and-static-assets.html#the-public-folder -->
+    <link rel="icon" sizes="any" type="image/svg+xml" href="favicon.svg" />
+    <!-- Fallback favicon in case a browser does not support the SVG version -->
+    <link rel="alternate icon" type="image/x-icon" href="favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HAnS</title>
+    <!-- Matomo -->
+    <script type="module" src="/src/common/matomo_header.js"></script>
+    <!-- End Matomo Code -->
+    <script type="module" src="node_modules/d3/dist/d3.min.js"></script>
+    <!-- Block indexing -->
+    <!-- https://developers.google.com/search/docs/crawling-indexing/block-indexing -->
+    <meta name="robots" content="noindex" />
+    <!-- End block indexing -->
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

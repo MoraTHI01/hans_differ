@@ -1,0 +1,33 @@
+# See https://docs.docker.com/compose/compose-file/
+services:
+  # airflow-docker-proxy forwards tcp requests to the docker.sock file on the host which runs the docker engine
+  # this is used by DockerOperator tasks part of an Airflow DAG workflow
+  # https://stackoverflow.com/questions/61186983/airflow-dockeroperator-connect-sock-connectself-unix-socket-filenotfounderror
+  # https://onedevblog.com/how-to-fix-a-permission-denied-when-using-dockeroperator-in-airflow/
+  #airflow-docker-proxy:
+  #  build: airflow-docker-proxy
+  #  container_name: hans-ml-backend-airflow-docker-proxy
+  #  expose:
+  #    - 2375
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #  networks:
+  #    - ml-backend-tier
+
+  # Required because of DockerOperator. For secure access and handling permissions.
+  airflow-docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      AUTH: 1
+      POST: 1
+      VOLUMES: 1
+    privileged: true
+    expose:
+      - 2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    restart: always
+    networks:
+      - ml-backend-tier

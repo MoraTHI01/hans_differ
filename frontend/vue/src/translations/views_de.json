@@ -1,0 +1,112 @@
+{
+  "AirflowView": {},
+  "AnnouncementView": {
+    "searchplaceholder": "Ankündigungen Verwalten",
+    "menutext": "Ankündigung hochladen"
+  },
+  "ChannelsView": {
+    "searchplaceholder": "Suche Kanäle",
+    "menutext": "Alle Kanäle"
+  },
+  "ContactView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Kontakt",
+    "about": "Das Hochschul Assistenz System (HAnS) ist ein Prototyp eines laufenden Verbundforschungsprojekts.",
+    "notice": "HAnS ist nicht Teil der offiziellen Website der Technische Hochschule Nürnberg Georg Simon Ohm.",
+    "heading": "Kontaktaufnahme mit dem Verbundprojekt-HAnS",
+    "contact": "Kontakt",
+    "dot": "Punkt",
+    "report": "Einen Fehler melden",
+    "linkReport": "Einen Fehler auf der Website melden"
+  },
+  "CreateChannelView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Kanal erstellen"
+  },
+  "DataProtectionView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Datenschutz"
+  },
+  "GeneralNotesView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Nutzungsbedingungen",
+    "hint": "Nutzungsbedingungen"
+  },
+  "HistoryView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Zuletzt gesehene Medien"
+  },
+  "HomeView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Kürzlich hochgeladene Medien"
+  },
+  "LegalView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Impressum"
+  },
+  "LoginView": {
+    "menutext": "Anmelden",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "login": "Anmelden",
+    "loggingin": "Anmeldung erfolgt...",
+    "error": "Es ist ein Fehler bei der Anmeldung aufgetreten.",
+    "errordetail": "Bitte geben Sie das richtige Passwort ein und versuchen Sie es erneut.",
+    "sso": "Single Sign-On",
+    "ssotitle": "Authentifizierung mit Single Sign-On:",
+    "ssodesc": "Melden Sie sich mit den Zugangsdaten Ihrer Einrichtung an. Nach Auswahl Ihrer Institution werden Sie zum entsprechenden Login weitergeleitet.",
+    "institution": "Institution",
+    "local": "Lokal",
+    "localtitle": "Authentifizierung mit lokalem Benutzerkonto:"
+  },
+  "OpenApiView": {
+    "menutext": "API"
+  },
+  "SearchResultsView": {
+    "searchplaceholder": "Suche Medien"
+  },
+  "SurveysView": {
+    "searchplaceholder": "Umfragen Verwalten",
+    "menutext": "Umfrage hochladen"
+  },
+  "UploadChaptersView": {
+    "topic": "Thema"
+  },
+  "UploadGeneral": {
+    "shortSummary": "Kurze Zusammenfassung",
+    "summary": "Volle Zusammenfassung",
+    "editInDe": "Bearbeiten in Deutsch",
+    "editInEn": "Bearbeiten in Englisch"
+  },
+  "UploadOverviewView": {
+    "menutext": "Ihre Medien"
+  },
+  "UploadView": {
+    "searchplaceholder": "Suche nach Medien",
+    "menutext": "Medien hochladen"
+  },
+  "VideoPlayerView": {
+    "searchplaceholder": "Suche Inhalte in Medien",
+    "surveybanner": "Umfragen",
+    "slidestabname": "Folien",
+    "videotabname": "Video",
+    "summarytabname": "Zusammenfassung",
+    "summarytabhinttext": "Klicke um Hinweise zur Verwendung der automatisch erstellten Zusammenfassung zu bekommen",
+    "topicstabname": "Themen",
+    "topicstabhinttext": "Klicke um Hinweise zur Verwendung der automatisch erstellten Themen zu bekommen",
+    "questiontabname": "Fragen",
+    "questiontabhinttext": "Klicke um Hinweise zur Verwendung der automatisch erstellten Fragen zu bekommen",
+    "chattabname": "Chat",
+    "chattabhinttext": "Klicke um Hinweise zur Verwendung des großen Sprachmodells (LLM) zu bekommen",
+    "linkstabname": "Links",
+    "linktabhinttext": "Klicke um Hinweise zur Verwendung der automatisch erstellten Links zu bekommen",
+    "keywordstabname": "Schlagworte",
+    "keywordstabhinttext": "Klicke um Hinweise zur Verwendung der automatisch erstellten Schlagworte zu bekommen",
+    "notauthorizedtitle": "Nicht authorisiert!",
+    "notauthorizedtext": "Du hast keinen Zugriff auf dieses Video."
+  },
+  "NotFoundView": {
+    "status": "404 Seite Nicht Gefunden",
+    "message": "Dieser Inhalt existiert nicht"
+  }
+}

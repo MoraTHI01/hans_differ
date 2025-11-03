@@ -1,0 +1,1296 @@
+{
+  "type": "AsrResult",
+  "result": [
+    {
+      "final": true,
+      "interval": [1.34, 6.88],
+      "result_index": 0,
+      "status": "processing",
+      "transcript": "this blade has passed",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9819,
+              "word": "this"
+            },
+            {
+              "confidence": 0.0107,
+              "word": "there's"
+            },
+            {
+              "confidence": 0.0042,
+              "word": "these"
+            }
+          ],
+          "confidence": 0.9819,
+          "interval": [3.92, 4.28],
+          "word": "this"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9997,
+              "word": "blade"
+            },
+            {
+              "confidence": 0.0002,
+              "word": "as"
+            },
+            {
+              "confidence": 2.6587576940073632e-5,
+              "word": "bleed"
+            }
+          ],
+          "confidence": 0.9997,
+          "interval": [4.28, 4.94],
+          "word": "blade"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.5749,
+              "word": "has"
+            },
+            {
+              "confidence": 0.2378,
+              "word": "a"
+            },
+            {
+              "confidence": 0.1294,
+              "word": "as"
+            }
+          ],
+          "confidence": 0.5749,
+          "interval": [4.94, 5.18],
+          "word": "has"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.5794,
+              "word": "passed"
+            },
+            {
+              "confidence": 0.3154,
+              "word": "past"
+            },
+            {
+              "confidence": 0.0527,
+              "word": "bast"
+            }
+          ],
+          "confidence": 0.5794,
+          "interval": [5.66, 6.26],
+          "word": "passed"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [7.02, 11.7],
+      "result_index": 1,
+      "status": "processing",
+      "transcript": "in a shed much blood",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.7588,
+              "word": "in"
+            },
+            {
+              "confidence": 0.1591,
+              "word": "it"
+            },
+            {
+              "confidence": 0.0694,
+              "word": ""
+            }
+          ],
+          "confidence": 0.7588,
+          "interval": [8.52, 8.67],
+          "word": "in"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.754,
+              "word": "a"
+            },
+            {
+              "confidence": 0.1358,
+              "word": "has"
+            },
+            {
+              "confidence": 0.0662,
+              "word": ""
+            }
+          ],
+          "confidence": 0.754,
+          "interval": [8.67, 8.76],
+          "word": "a"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.8542,
+              "word": "shed"
+            },
+            {
+              "confidence": 0.036,
+              "word": "shadd"
+            },
+            {
+              "confidence": 0.0326,
+              "word": "shad"
+            }
+          ],
+          "confidence": 0.8542,
+          "interval": [8.76, 9.3],
+          "word": "shed"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.992,
+              "word": "much"
+            },
+            {
+              "confidence": 0.0053,
+              "word": "mutch"
+            },
+            {
+              "confidence": 0.0027,
+              "word": "mutsch"
+            }
+          ],
+          "confidence": 0.992,
+          "interval": [9.39, 9.9],
+          "word": "much"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9952,
+              "word": "blood"
+            },
+            {
+              "confidence": 0.0032,
+              "word": ""
+            },
+            {
+              "confidence": 0.0008,
+              "word": "bud"
+            }
+          ],
+          "confidence": 0.9952,
+          "interval": [10.65, 10.98],
+          "word": "blood"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [13.32, 20.56],
+      "result_index": 2,
+      "status": "processing",
+      "transcript": "you're a fool for traveling alone so completely unprepared you're lucky your blood still flowing",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9803,
+              "word": "you're"
+            },
+            {
+              "confidence": 0.0182,
+              "word": "you"
+            },
+            {
+              "confidence": 0.0011,
+              "word": "your"
+            }
+          ],
+          "confidence": 0.9803,
+          "interval": [14.7, 14.88],
+          "word": "you're"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9992,
+              "word": "a"
+            },
+            {
+              "confidence": 0.0004,
+              "word": "uh"
+            },
+            {
+              "confidence": 0.0002,
+              "word": ""
+            }
+          ],
+          "confidence": 0.9992,
+          "interval": [14.88, 14.94],
+          "word": "a"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9957,
+              "word": "fool"
+            },
+            {
+              "confidence": 0.0033,
+              "word": "full"
+            },
+            {
+              "confidence": 0.0005,
+              "word": "food"
+            }
+          ],
+          "confidence": 0.9957,
+          "interval": [14.94, 15.21],
+          "word": "fool"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9988,
+              "word": "for"
+            },
+            {
+              "confidence": 0.0005,
+              "word": "four"
+            },
+            {
+              "confidence": 0.0002,
+              "word": ""
+            }
+          ],
+          "confidence": 0.9988,
+          "interval": [15.21, 15.39],
+          "word": "for"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9923,
+              "word": "traveling"
+            },
+            {
+              "confidence": 0.0077,
+              "word": "travelling"
+            }
+          ],
+          "confidence": 0.9923,
+          "interval": [15.39, 15.75],
+          "word": "traveling"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "alone"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [15.75, 16.08],
+          "word": "alone"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9768,
+              "word": "so"
+            },
+            {
+              "confidence": 0.0218,
+              "word": ""
+            },
+            {
+              "confidence": 0.0004,
+              "word": "and"
+            }
+          ],
+          "confidence": 0.9768,
+          "interval": [16.08, 16.26],
+          "word": "so"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "completely"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [16.26, 16.74],
+          "word": "completely"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "unprepared"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [16.74, 17.31],
+          "word": "unprepared"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.876,
+              "word": "you're"
+            },
+            {
+              "confidence": 0.0758,
+              "word": ""
+            },
+            {
+              "confidence": 0.0301,
+              "word": "you"
+            }
+          ],
+          "confidence": 0.876,
+          "interval": [18.33, 18.57],
+          "word": "you're"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9187,
+              "word": "lucky"
+            },
+            {
+              "confidence": 0.0708,
+              "word": "luckily"
+            },
+            {
+              "confidence": 0.0087,
+              "word": ""
+            }
+          ],
+          "confidence": 0.9187,
+          "interval": [18.57, 18.84],
+          "word": "lucky"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.7341,
+              "word": "your"
+            },
+            {
+              "confidence": 0.1444,
+              "word": "you're"
+            },
+            {
+              "confidence": 0.0971,
+              "word": "or"
+            }
+          ],
+          "confidence": 0.7341,
+          "interval": [18.84, 18.99],
+          "word": "your"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.8949,
+              "word": "blood"
+            },
+            {
+              "confidence": 0.0486,
+              "word": ""
+            },
+            {
+              "confidence": 0.0177,
+              "word": "bluffs"
+            }
+          ],
+          "confidence": 0.8949,
+          "interval": [18.99, 19.29],
+          "word": "blood"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.8962,
+              "word": "still"
+            },
+            {
+              "confidence": 0.0289,
+              "word": ""
+            },
+            {
+              "confidence": 0.0249,
+              "word": "blood's"
+            }
+          ],
+          "confidence": 0.8962,
+          "interval": [19.29, 19.53],
+          "word": "still"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.7144,
+              "word": "flowing"
+            },
+            {
+              "confidence": 0.2729,
+              "word": "flying"
+            },
+            {
+              "confidence": 0.0057,
+              "word": "florida"
+            }
+          ],
+          "confidence": 0.7144,
+          "interval": [19.53, 19.89],
+          "word": "flowing"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [21.64, 23.04],
+      "result_index": 3,
+      "status": "processing",
+      "transcript": "thank you",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.6069,
+              "word": "thank"
+            },
+            {
+              "confidence": 0.3931,
+              "word": ""
+            },
+            {
+              "confidence": 3.128301977994852e-5,
+              "word": "thanks"
+            }
+          ],
+          "confidence": 0.6069,
+          "interval": [22.0, 22.27],
+          "word": "thank"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.603,
+              "word": "you"
+            },
+            {
+              "confidence": 0.3861,
+              "word": ""
+            },
+            {
+              "confidence": 0.0039,
+              "word": "thanks"
+            }
+          ],
+          "confidence": 0.603,
+          "interval": [22.27, 22.39],
+          "word": "you"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [23.38, 28.86],
+      "result_index": 4,
+      "status": "processing",
+      "transcript": "so what brings you to the land are the gatekeepers",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9994,
+              "word": "so"
+            },
+            {
+              "confidence": 0.0006,
+              "word": ""
+            },
+            {
+              "confidence": 4.443282159627415e-5,
+              "word": "uh"
+            }
+          ],
+          "confidence": 0.9994,
+          "interval": [24.28, 24.79],
+          "word": "so"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "what"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [26.2, 26.44],
+          "word": "what"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "brings"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [26.44, 26.77],
+          "word": "brings"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "you"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [26.77, 26.89],
+          "word": "you"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9991,
+              "word": "to"
+            },
+            {
+              "confidence": 0.0007,
+              "word": "into"
+            },
+            {
+              "confidence": 0.0002,
+              "word": "too"
+            }
+          ],
+          "confidence": 0.9991,
+          "interval": [26.89, 27.01],
+          "word": "to"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9996,
+              "word": "the"
+            },
+            {
+              "confidence": 0.0004,
+              "word": ""
+            },
+            {
+              "confidence": 5.372341547627002e-5,
+              "word": "their"
+            }
+          ],
+          "confidence": 0.9996,
+          "interval": [27.01, 27.13],
+          "word": "the"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.999,
+              "word": "land"
+            },
+            {
+              "confidence": 0.0008,
+              "word": "lande"
+            },
+            {
+              "confidence": 9.536957804812118e-5,
+              "word": "landed"
+            }
+          ],
+          "confidence": 0.999,
+          "interval": [27.13, 27.52],
+          "word": "land"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.635,
+              "word": "are"
+            },
+            {
+              "confidence": 0.1787,
+              "word": "or"
+            },
+            {
+              "confidence": 0.1756,
+              "word": "of"
+            }
+          ],
+          "confidence": 0.635,
+          "interval": [27.52, 27.61],
+          "word": "are"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9965,
+              "word": "the"
+            },
+            {
+              "confidence": 0.0025,
+              "word": ""
+            },
+            {
+              "confidence": 0.0003,
+              "word": "of"
+            }
+          ],
+          "confidence": 0.9965,
+          "interval": [27.61, 27.73],
+          "word": "the"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9992,
+              "word": "gatekeepers"
+            },
+            {
+              "confidence": 0.0008,
+              "word": "keepers"
+            }
+          ],
+          "confidence": 0.9992,
+          "interval": [27.73, 28.42],
+          "word": "gatekeepers"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [29.54, 31.86],
+      "result_index": 5,
+      "status": "processing",
+      "transcript": "",
+      "words": []
+    },
+    {
+      "final": true,
+      "interval": [31.86, 33.86],
+      "result_index": 6,
+      "status": "processing",
+      "transcript": "i'm searching for someone",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9906,
+              "word": "i'm"
+            },
+            {
+              "confidence": 0.0047,
+              "word": "um"
+            },
+            {
+              "confidence": 0.0024,
+              "word": "im"
+            }
+          ],
+          "confidence": 0.9906,
+          "interval": [32.04, 32.22],
+          "word": "i'm"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "searching"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [32.22, 32.73],
+          "word": "searching"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "for"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [32.73, 32.88],
+          "word": "for"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.3503,
+              "word": "someone"
+            },
+            {
+              "confidence": 0.2982,
+              "word": "somebody"
+            },
+            {
+              "confidence": 0.0839,
+              "word": "something"
+            }
+          ],
+          "confidence": 0.3503,
+          "interval": [32.88, 33.27],
+          "word": "someone"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [34.38, 36.38],
+      "result_index": 7,
+      "status": "processing",
+      "transcript": "someone very dear",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9996,
+              "word": "someone"
+            },
+            {
+              "confidence": 0.0003,
+              "word": "someone's"
+            },
+            {
+              "confidence": 5.993200829834677e-5,
+              "word": "some"
+            }
+          ],
+          "confidence": 0.9996,
+          "interval": [34.53, 35.04],
+          "word": "someone"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9985,
+              "word": "very"
+            },
+            {
+              "confidence": 0.001,
+              "word": "vary"
+            },
+            {
+              "confidence": 0.0003,
+              "word": ""
+            }
+          ],
+          "confidence": 0.9985,
+          "interval": [35.04, 35.31],
+          "word": "very"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9566,
+              "word": "dear"
+            },
+            {
+              "confidence": 0.0128,
+              "word": "deer"
+            },
+            {
+              "confidence": 0.0102,
+              "word": "deep"
+            }
+          ],
+          "confidence": 0.9566,
+          "interval": [35.31, 35.64],
+          "word": "dear"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [36.6, 38.32],
+      "result_index": 8,
+      "status": "processing",
+      "transcript": "a kindred spirit",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.8834,
+              "word": "a"
+            },
+            {
+              "confidence": 0.061,
+              "word": ""
+            },
+            {
+              "confidence": 0.0532,
+              "word": "uh"
+            }
+          ],
+          "confidence": 0.8834,
+          "interval": [36.84, 36.93],
+          "word": "a"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9999,
+              "word": "kindred"
+            },
+            {
+              "confidence": 5.800210783490911e-5,
+              "word": "kenrick"
+            }
+          ],
+          "confidence": 0.9999,
+          "interval": [36.93, 37.32],
+          "word": "kindred"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9989,
+              "word": "spirit"
+            },
+            {
+              "confidence": 0.0011,
+              "word": "spirits"
+            }
+          ],
+          "confidence": 0.9989,
+          "interval": [37.32, 37.71],
+          "word": "spirit"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [39.98, 45.04],
+      "result_index": 9,
+      "status": "processing",
+      "transcript": "a dragon",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.4881,
+              "word": "a"
+            },
+            {
+              "confidence": 0.4796,
+              "word": ""
+            },
+            {
+              "confidence": 0.028,
+              "word": "uh"
+            }
+          ],
+          "confidence": 0.4881,
+          "interval": [40.28, 40.37],
+          "word": "a"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.5654,
+              "word": "dragon"
+            },
+            {
+              "confidence": 0.389,
+              "word": ""
+            },
+            {
+              "confidence": 0.0145,
+              "word": "uh"
+            }
+          ],
+          "confidence": 0.5654,
+          "interval": [40.37, 40.97],
+          "word": "dragon"
+        }
+      ]
+    },
+    {
+      "final": true,
+      "interval": [45.5, 52.66],
+      "result_index": 10,
+      "status": "processing",
+      "transcript": "a dangerous quest for how long i've been around for as long as i can remember",
+      "words": [
+        {
+          "alternatives": [
+            {
+              "confidence": 0.3888,
+              "word": "a"
+            },
+            {
+              "confidence": 0.3117,
+              "word": "uh"
+            },
+            {
+              "confidence": 0.2968,
+              "word": ""
+            }
+          ],
+          "confidence": 0.3888,
+          "interval": [45.89, 45.98],
+          "word": "a"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9985,
+              "word": "dangerous"
+            },
+            {
+              "confidence": 0.0015,
+              "word": "dangers"
+            }
+          ],
+          "confidence": 0.9985,
+          "interval": [45.98, 46.55],
+          "word": "dangerous"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9894,
+              "word": "quest"
+            },
+            {
+              "confidence": 0.0098,
+              "word": "quests"
+            },
+            {
+              "confidence": 0.0006,
+              "word": "request"
+            }
+          ],
+          "confidence": 0.9894,
+          "interval": [46.55, 46.97],
+          "word": "quest"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "for"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [46.97, 47.18],
+          "word": "for"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9056,
+              "word": "how"
+            },
+            {
+              "confidence": 0.057,
+              "word": "a"
+            },
+            {
+              "confidence": 0.0252,
+              "word": "her"
+            }
+          ],
+          "confidence": 0.9056,
+          "interval": [47.18, 47.27],
+          "word": "how"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9412,
+              "word": "long"
+            },
+            {
+              "confidence": 0.0298,
+              "word": "loan"
+            },
+            {
+              "confidence": 0.0086,
+              "word": ""
+            }
+          ],
+          "confidence": 0.9412,
+          "interval": [47.27, 47.54],
+          "word": "long"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9775,
+              "word": "i've"
+            },
+            {
+              "confidence": 0.0089,
+              "word": "they've"
+            },
+            {
+              "confidence": 0.0051,
+              "word": "you've"
+            }
+          ],
+          "confidence": 0.9775,
+          "interval": [50.09, 50.24],
+          "word": "i've"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9995,
+              "word": "been"
+            },
+            {
+              "confidence": 0.0004,
+              "word": ""
+            },
+            {
+              "confidence": 3.0858467653160915e-5,
+              "word": "her"
+            }
+          ],
+          "confidence": 0.9995,
+          "interval": [50.24, 50.42],
+          "word": "been"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.5374,
+              "word": "around"
+            },
+            {
+              "confidence": 0.3771,
+              "word": "alone"
+            },
+            {
+              "confidence": 0.0773,
+              "word": "a"
+            }
+          ],
+          "confidence": 0.5374,
+          "interval": [50.42, 50.75],
+          "word": "around"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9965,
+              "word": "for"
+            },
+            {
+              "confidence": 0.0014,
+              "word": "long"
+            },
+            {
+              "confidence": 0.0011,
+              "word": "alone"
+            }
+          ],
+          "confidence": 0.9965,
+          "interval": [50.75, 50.9],
+          "word": "for"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "as"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [50.9, 51.08],
+          "word": "as"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "long"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [51.08, 51.29],
+          "word": "long"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 1.0,
+              "word": "as"
+            }
+          ],
+          "confidence": 1.0,
+          "interval": [51.29, 51.41],
+          "word": "as"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9999,
+              "word": "i"
+            },
+            {
+              "confidence": 5.1638195145642385e-5,
+              "word": "they"
+            },
+            {
+              "confidence": 4.6162625949364156e-5,
+              "word": "you"
+            }
+          ],
+          "confidence": 0.9999,
+          "interval": [51.41, 51.5],
+          "word": "i"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9988,
+              "word": "can"
+            },
+            {
+              "confidence": 0.0009,
+              "word": "can't"
+            },
+            {
+              "confidence": 0.0001,
+              "word": "cant"
+            }
+          ],
+          "confidence": 0.9988,
+          "interval": [51.5, 51.71],
+          "word": "can"
+        },
+        {
+          "alternatives": [
+            {
+              "confidence": 0.9987,
+              "word": "remember"
+            },
+            {
+              "confidence": 0.0009,
+              "word": ""
+            },
+            {
+              "confidence": 0.0003,
+              "word": "read"
+            }
+          ],
+          "confidence": 0.9987,
+          "interval": [51.71, 52.16],
+          "word": "remember"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "engine": {
+      "name": "mod9",
+      "version": "1.9.3",
+      "hostname": "215d6166c6c3",
+      "build": "b192108.220505.c822b8711ddb.centos7.gcc9.jemalloc5.mkl",
+      "license_type": "evaluation"
+    },
+    "asr_model": "en_video",
+    "status": "completed",
+    "asr_model_info": {
+      "date": "200512",
+      "description": "Wideband (16kHz) Global English Video ASR model. The acoustic model was trained on tens of thousands of hours of transcribed videos, mostly from a US-based transcription company that specializes in the educational sector. The training data exhibited a variety of foreign accents, so we consider this to be a Global English dialect-agnostic model; even though the sample rate is mismatched for foreign-accented telephony, this model tends to perform more robustly than the `en-US_phone` model. The training data also exhibited much more variability in the acoustic quality (background noises, compression artifacts), so this model has some robustness to real-world scenarios including audio recorded on consumer devices or over video conference services. The language model was trained on the same collection as the `en-US_phone` model, so it accounts for conversational patterns and disfluencies while also providing relatively broad topic and vocabulary coverage. This model is generally recommended for any English audio, irrespective of dialect or other audio characteristics.",
+      "ivectors": false,
+      "language": "en",
+      "license": "Restricted for exclusive use with Mod9 ASR Engine.",
+      "md5": {
+        "am": "31004ee5dedfdfbe6ebf43162d53c68c",
+        "graph": "37a791c4618f8c62523dd0fa8dba60c4",
+        "lexicon": "a9b750f8ca9bcf7a7c563b5b76670d43",
+        "lm": "3a81cdf2f61a530e434ca89460d1ce89",
+        "tree": "397a352b716adbc6114a0db1bef59c69"
+      },
+      "memory_gibibytes": 1.87,
+      "name": "en_video",
+      "phones": {
+        "noise": ["NOISE"],
+        "nonspeech": ["LAUGHTER"],
+        "phonemes": [
+          "AA",
+          "AE",
+          "AH",
+          "AO",
+          "AW",
+          "AY",
+          "B",
+          "CH",
+          "D",
+          "DH",
+          "EH",
+          "ER",
+          "EY",
+          "F",
+          "G",
+          "HH",
+          "IH",
+          "IY",
+          "JH",
+          "K",
+          "L",
+          "M",
+          "N",
+          "NG",
+          "OW",
+          "OY",
+          "P",
+          "R",
+          "S",
+          "SH",
+          "T",
+          "TH",
+          "UH",
+          "UW",
+          "V",
+          "W",
+          "Y",
+          "Z",
+          "ZH"
+        ],
+        "silence": ["SIL"],
+        "speech": ["OOV"]
+      },
+      "rate": 16000.0,
+      "size": {
+        "am": {
+          "context_seconds": {
+            "left": 0.33,
+            "right": 0.33
+          },
+          "parameters_millions": 25.2
+        },
+        "graph": {
+          "arcs_millions": 59.4,
+          "states_millions": 16.1
+        },
+        "words": {
+          "added": 41,
+          "biased": 0,
+          "loaded": 130294
+        }
+      }
+    }
+  }
+}

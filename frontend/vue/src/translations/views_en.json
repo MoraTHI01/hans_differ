@@ -1,0 +1,112 @@
+{
+  "AirflowView": {},
+  "AnnouncementView": {
+    "searchplaceholder": "Manage Announcements",
+    "menutext": "Upload announcement"
+  },
+  "ChannelsView": {
+    "searchplaceholder": "Search for channels",
+    "menutext": "All channels"
+  },
+  "ContactView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Contact",
+    "about": "The Hochschul Assistenz System (HAnS) is a prototype of an ongoing collaborative research project.",
+    "notice": "HAnS is not part of the official website of Technische Hochschule Nürnberg Georg Simon Ohm.",
+    "heading": "How to contact the HAnS collaborative project",
+    "contact": "Contact",
+    "dot": "Dot",
+    "report": "Report an error",
+    "linkReport": "Report an error on the website"
+  },
+  "CreateChannelView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Create Channel"
+  },
+  "DataProtectionView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Data protection"
+  },
+  "GeneralNotesView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Terms of usage",
+    "hint": "Terms of usage"
+  },
+  "HistoryView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Last viewed media"
+  },
+  "HomeView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Recently uploaded media"
+  },
+  "LegalView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Legal notice"
+  },
+  "LoginView": {
+    "menutext": "Login",
+    "username": "Username",
+    "password": "Password",
+    "login": "Login",
+    "loggingin": "Logging in...",
+    "error": "An error occurred while logging in.",
+    "errordetail": "Please enter the correct password and try again.",
+    "sso": "Single Sign-On",
+    "ssotitle": "Authentication with Single Sign-On:",
+    "ssodesc": "Use the access data of your institution to login. You will be redirected to the respective login after selecting your institution.",
+    "institution": "institution",
+    "local": "Local",
+    "localtitle": "Authentication with local user account:"
+  },
+  "OpenApiView": {
+    "menutext": "API"
+  },
+  "SearchResultsView": {
+    "searchplaceholder": "Search for everything"
+  },
+  "SurveysView": {
+    "searchplaceholder": "Manage Surveys",
+    "menutext": "Upload Survey"
+  },
+  "UploadChaptersView": {
+    "topic": "Topic"
+  },
+  "UploadGeneral": {
+    "shortSummary": "Short summary",
+    "summary": "Full summary",
+    "editInDe": "Edit german version",
+    "editInEn": "Edit english version"
+  },
+  "UploadOverviewView": {
+    "menutext": "Your Media"
+  },
+  "UploadView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Upload Media"
+  },
+  "VideoPlayerView": {
+    "searchplaceholder": "Search for content in media",
+    "surveybanner": "Surveys",
+    "slidestabname": "Slides",
+    "videotabname": "Video",
+    "summarytabname": "Summary",
+    "summarytabhinttext": "Click to get instructions on how to use the automatically generated summary",
+    "topicstabname": "Topics",
+    "topicstabhinttext": "Click to get instructions on how to use the automatically generated topics",
+    "questiontabname": "Questions",
+    "questiontabhinttext": "Click to get instructions on how to use the automatically generated questions",
+    "chattabname": "Chat",
+    "chattabhinttext": "Click to get instructions on how to use the large language model (LLM)",
+    "linkstabname": "Links",
+    "linktabhinttext": "Click to get instructions on how to use the automatically generated links",
+    "keywordstabname": "Keywords",
+    "keywordstabhinttext": "Click to get instructions on how to use the automatically generated keywords",
+    "notauthorizedtitle": "Unauthorized!",
+    "notauthorizedtext": "You do not have any permissions to access this video."
+  },
+  "NotFoundView": {
+    "status": "404 Not Found",
+    "message": "This page does not exist"
+  }
+}

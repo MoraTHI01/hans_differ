@@ -1,0 +1,42 @@
+{
+  "type": "TopicResult",
+  "language": "de",
+  "result": [
+    {
+      "result_index": 0,
+      "interval": [76.62, 124.58],
+      "title": "1. Einführung in das Mittelalter",
+      "summary": "Diskutiert die Komplexität der Definition von Anfang und Ende des Mittelalters. Erwähnt den Untergang des Weströmischen Reiches als gemeinsamen Ausgangspunkt. Unterstreicht die Länge und Vielfalt des Mittelalters."
+    },
+    {
+      "result_index": 1,
+      "interval": [124.58, 193.56],
+      "title": "2. Die Kreuzzüge",
+      "summary": "Erforscht die religiösen und politischen Beweggründe hinter den Kreuzzügen. Erwähnt die verschiedenen Kampagnen gegen nichtchristliche Teile Europas. Erörtert die Komplexität der Kreuzzüge und die verschiedenen Gründe für ihr Auftreten."
+    },
+    {
+      "result_index": 2,
+      "interval": [193.56, 231.68],
+      "title": "3. Friedrich der Erste Barbarossa und die Pestepidemien",
+      "summary": "Stellt Friedrich den Ersten Barbarossa und seine Herrschaft vor. Erwähnt die ersten Pestepidemien und ihre Auswirkungen auf die Bevölkerung. Erörtert die unhygienischen Bedingungen, die zur Ausbreitung der Pest beitrugen."
+    },
+    {
+      "result_index": 3,
+      "interval": [231.68, 342.7],
+      "title": "4. Das Ende des Mittelalters",
+      "summary": "Untersucht die verschiedenen Möglichkeiten, das Ende des Mittelalters zu definieren. Erwähnt die Erfindung des Buchdrucks als einen möglichen Marker. Erörtert die Auswirkungen der Druckerpresse auf die Wissensverbreitung und kulturelle Entwicklung."
+    },
+    {
+      "result_index": 4,
+      "interval": [342.7, 373.72],
+      "title": "5. Die Entdeckung Amerikas und die Reformation",
+      "summary": "Erforscht die Rolle der Entdeckung Amerikas bei der Beendigung des Mittelalters. Erwähnt die falschen Vorstellungen über die Gestalt der Erde und Kolumbus \"Reise. Erörtert die Auswirkungen der Reformation auf die totale Herrschaft der katholischen Kirche."
+    },
+    {
+      "result_index": 5,
+      "interval": [373.72, 86400.0],
+      "title": "6. Schlussfolgerung: Das Mittelalter in der Kulturgeschichte",
+      "summary": "fasst die wichtigsten Punkte des Vortrags zusammen und stellt das Mittelalter in den breiteren Kontext der Kulturgeschichte."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "token": {
+    "type": "BearerToken",
+    "apiAccessToken": "an OAuth2 bearer token",
+    "expiresIn": 259200
+  },
+  "metaUrn": "metadb:meta:id:ba41a970-5f54-4ea4-b7d5-b2b8150657e6",
+  "input": [
+    {
+      "urn": "assetdb:assets:ae26b239-3d4e-4486-85f7-704823a387bb",
+      "filename": "Sintel.pdf",
+      "mime-type": "application/pdf",
+      "hans-type": "slides",
+      "locale": "de"
+    },
+    {
+      "urn": "mediadb:assets:aac06ba9-b99c-434c-81e5-be1d499c59fe",
+      "filename": "Sintel.timestamps.json",
+      "mime-type": "text/plain",
+      "hans-type": "timestamps",
+      "locale": "de"
+    },
+    {
+      "urn": "mediadb:videos:4dac7f8b-5bb2-432c-83c2-3a32b03ab3af",
+      "filename": "Sintel.mp4",
+      "mime-type": "video/mp4",
+      "hans-type": "video",
+      "locale": "de"
+    },
+    {
+      "urn": "mediadb:podcasts:c55e5ff9-4e66-45ce-afcb-9d3c1dc4a8eb",
+      "filename": "Sintel.wav",
+      "mime-type": "audio/mpeg",
+      "hans-type": "podcast",
+      "locale": "de"
+    }
+  ],
+  "output": [
+    {
+      "backend": "hans_backend",
+      "frontend": "hans_frontend"
+    }
+  ]
+}
