@@ -1,0 +1,240 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+\usetheme{SimplePlus}
+\usepackage[german]{babel}
+\usepackage[babel=true]{csquotes}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\title[HAnS Epics]{HAnS Epics}
+\subtitle{und Storys}
+
+\institute[THI, THN, HSH]
+{
+    Technische Hochschule Ingolstadt,
+    Technische Hochschule Nürnberg,
+    Hochschule Hof
+}
+\date{07.07.2022}
+%----------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Übersicht}
+    \tableofcontents
+\end{frame}
+
+%------------------------------------------------
+
+%------------------------------------------------
+\section{Notes from meeting 07-07-22}
+%------------------------------------------------
+
+\begin{frame}{Topics of interest\\
+Mentioned during meeting on 07-07-22}
+    \begin{itemize}
+        \item 
+        Thomas: OCR zur Extraktion von Text zur ASR Verbesserung
+        \item
+        Fabian: Speaker Diarization for Anonymization, Text summarization und Topic segmentation
+        \item
+        Christopher: ASR Verbesserung durch Lippenlesung
+        \item
+        Lia: Speaker Diarization, eigenes (E2E) ASR System
+        
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Epic 1: Audio Mining \& Segmentation}
+%------------------------------------------------
+
+\begin{frame}{Epic 1: Audio Mining \& Segmentation\\
+Story 1: Segmentation \& Alignment}
+    Task 1: Segmentation
+    \begin{itemize}
+        \item 
+        Segmentierung des Audiosignals auf Satzebene mith. akustischer Features
+        
+        \item
+        Satzsegmente besser geeignet für ASR und spätere Verarbeitung in HAnS
+        
+    \end{itemize}
+
+    Task 2: Alignment
+    \begin{itemize}
+        \item
+        Alignment von Audio und Transkript auf Wortebene mith. phonemischer Features
+        
+        \item
+        Wichtig für Begriffsuche im Video und Adaption (Aussprache von Fachbegriffen)
+        
+    \end{itemize}
+
+\vfill    
+\scriptsize \textbf{AP 2.1.1} ASR Grundsystem und Anpassung an Lehrmaterial\\
+\textbf{AP 2.2.1} Audio Mining, zeitsynchroner Lattices \& Konfidenzskalierung 
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}{Epic 1: Audio Mining \& Segmentation\\
+Story 2: Topic Segmentation}
+
+    \begin{itemize}
+        \item 
+        Unterteilung der Vorlesungsvideos in Themenblöcke und Benennung der Subthemen
+        
+        \item
+        Unterteilung der Vorlesung in Themenblöcke erleichtert Weiterverarbeitung im HAnS-Kontext und erhöht Nutzerfreundlichkeit
+        
+        \item
+        Unsupervised \& Supervised Ansätze zur Topic Segmentation und Topic Extraction
+        
+    \end{itemize}
+
+\vfill
+\scriptsize \textbf{AP 2.2.4} Topic Modeling mit User-Interaktion
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}{Epic 1: Audio Mining \& Segmentation\\
+Story 3: Audio Mining}
+    \begin{itemize}
+        \item 
+        Detektieren von Störquellen/Soundproblemen (und anderen Sound Events) in der Audiosequenz erleichtert nachfolgende Bearbeitung in HAnS
+        
+        \item
+        Nimmt Lehrenden Arbeit ab bei der Durchsicht der Aufzeichnung - Anreiz zur Verwendung von HAnS
+        
+    \end{itemize}
+
+\vfill    
+\scriptsize  \textbf{AP 2.1.1} ASR Grundsystem und Anpassung an Lehrmaterial\\
+\textbf{AP 2.2.1} Audio Mining, zeitsynchroner Lattices \& Konfidenzskalierung
+\end{frame}
+
+%------------------------------------------------
+\section{Epic 2: Adaption \& Anonymisierung}
+%------------------------------------------------
+
+\begin{frame}{Epic 2: Adaption \& Anonymisierung \\ Story 1: Textbasierte Adaption}
+    \begin{itemize}
+        \item Domain Adaptation der Language Models mit Transkripten und von OCR
+        \item Lernen und Erkennen von Fachbegriffen für ASR (Lattice Rescoring), Topic Modeling, usw.\
+        \begin{itemize}
+            \item[$\rightarrow$] Generierung von domänespezifischen Vokabularen
+        \end{itemize}
+        \item Mehrsprachige Synonyme von Fachbegriffen sollten als solche erkannt werden
+        \begin{itemize}
+            \item[$\rightarrow$] Auch evtl. als Schnittstelle zwischen deutschem und englischem Lehrmaterial
+        \end{itemize}
+        \item Kontinuierliche Verbesserung nach dem Deployment (online learning) und Möglichkeit zur Ergänzung mit neuen Domains
+    \end{itemize}
+
+\vfill    
+\scriptsize \textbf{AP 2.1.1} Anpassung an Lehrmaterial, \textbf{2.1.3} Domain-Adaptation mit OCR\\
+\textbf{AP 2.2.1} zeitsynchrone Lattices, \textbf{2.2.2} Erkennung \& Adaption von Fachbegriffen, \textbf{2.2.3} Lernen von Fachausdrücken    
+    
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}{Epic 2: Adaption \& Anonymisierung \\ Story 2: Akustische Adaption}
+    \begin{itemize}
+        \item Dynamische Sprecheradaption für das akustische Modell
+        \begin{itemize}
+            \item[$\rightarrow$] Auch nach Deployment muss an neue Sprecher adaptiert werden    
+        \end{itemize}
+        \item Anpassung an verschiedene Räume und Aufnahmegeräte
+        \item Konfidenzskalierung für die manuelle Korrektur möglicher Transkriptionsfehler
+        \item Emphasis Detection zur Unterstützung der Fachbegrifferkennung und als Metainformation im Transkript
+        \begin{itemize}
+            \item[$\rightarrow$] Kann in die UI integriert und von der Suchfunktion verwendet werden
+        \end{itemize}
+    \end{itemize}
+\vfill    
+\scriptsize \textbf{AP 2.1.4} Sprecheradaption\\
+\textbf{AP 2.2.1} Audiomining \& Konfidenzskalierung
+
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}{Epic 2: Adaption \& Anonymisierung \\ Story 3: Speaker Diarization und Anonymisierung}
+    \begin{itemize}
+        \item Speaker Diarization zur Erkennung und Anonymisierung von Abschnitten, in denen ein Student spricht
+        \item Hauptsprechererkennung für die Sprecheradaption
+        \item TTS-System von Transkription anonymisierter Abschnitte für Accessibility
+        \begin{itemize}
+            \item[$\rightarrow$] Könnte auch für den KI-Tutor verwendet werden
+        \end{itemize}
+    \end{itemize}
+\vfill    
+\scriptsize\textbf{AP 2.1.5} Sprechererkennung/Anonymisierung der Sprache von Studenten
+\end{frame}
+
+
+%------------------------------------------------
+\section{Epic 3: Test \& Evaluation}
+%------------------------------------------------
+
+\begin{frame}{Epic 3: Test \& Evaluation \\ Story 1: Aufnahmen}
+\begin{itemize}
+    \item 
+%    Motivation:
+    Dozierende benutzen unterschiedliche Mikrofone in unterschiedlichen Räumen
+    
+    \item 
+%    Problem:
+    Spracherkennung \& Sprecheradaption sollen trotzdem funktionieren
+    
+    \item 
+%    Lösung: 
+    Kontrollierte Aufnahmen in verschiedenen Umgebungen
+
+\end{itemize}
+    
+\vfill    
+\scriptsize\textbf{AP 2.1.1} Grundsystem\\
+\textbf{AP 2.1.4} Sprecheradaption
+    
+    
+\end{frame}
+
+%------------------------------------------------
+
+\begin{frame}{Epic 3: Test \& Evaluation \\ Story 2: Analyse}
+
+\begin{itemize}
+    \item 
+ %   Motivation: 
+    Viele Hochschulen mit verschiedenen Fachbereichen benutzen HAnS
+    
+    \item 
+%    Problem: 
+    Akzente \& Fachbegriffe sollen erkannt werden
+    
+    \item 
+%    Lösung: 
+    Bias-Analyse | Wo braucht die Erkennung noch Verbesserung?
+    
+\end{itemize}
+\vfill    
+\scriptsize\textbf{AP 2.1.1} Grundsystem\\
+\textbf{AP 2.1.4} Sprecheradaption\\
+\textbf{AP 2.2.2} Fachbegriffe
+\end{frame}
+
+
+%------------------------------------------------
+
+
+
+\end{document}

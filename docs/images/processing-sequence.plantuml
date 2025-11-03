@@ -1,0 +1,182 @@
+@startuml processing-sequence
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/flask>
+
+partition hans_v1 {
+(*) --> "read config of uploaded files"
+--> "Load uploaded files from assetdb into assetdb-temp"
+--> "Read and update metadb, set status to inprogress"
+--> ===B1===
+partition media-converter-audio #LightSkyBlue {
+  ===B1=== --> "media-converter-audio init"
+  If "input is only audio" then
+  --> [Yes] "convert audio file to raw audio file"
+  --> "store raw audio file in assetdb-temp"
+  else
+  --> "convert video file to raw audio file"
+  --> "store raw audio file in assetdb-temp"
+  Endif
+}
+--> ===B2===
+
+partition media-converter-video #LightSkyBlue {
+  ===B1=== --> "media-converter-video init"
+  If "input is only audio, slides and timestamp file" then
+  --> [Yes] "convert slides to images"
+  --> "create video file from images, audio and timestamp file"
+  --> "convert video file for HAnS DASH streaming"
+  else
+  --> "convert video file for HAnS DASH streaming"
+  Endif
+  note right: "This is a long running subtask."
+  --> "convert video file for external HLS streaming"
+  note right: "This is a long running subtask."
+  --> "store converted mp4\nfiles and MPD file in assetdb-temp"
+}
+--> ===B6===
+
+partition text-extractor #LightSkyBlue {
+  ===B1=== --> "text-extractor init"
+  If "input is only video without slides" then
+  --> [Yes] "Init OCR engine"
+  If "timestamp file available" then
+  --> [Yes] "Convert video to images using timestamp file"
+  --> "create word file with OCR engine from images"
+  else
+  --> "Convert video to images, one image per second"
+  Endif
+  --> "create word file with OCR engine from images"
+  --> "normalize word file"
+  else
+  --> "extract text and create word file from slides directly"
+  --> "normalize word file"
+  Endif
+  --> "store word file in assetdb-temp"
+}
+--> ===B2===
+
+partition asr-remote-processor #LightSkyBlue {
+  --> "recognize utterances from raw audio file"
+  --> "store utterance file in assetdb-temp"
+}
+--> ===B3===
+
+partition text-normalization #LightSkyBlue {
+  ===B3=== --> "normalize utterance file"
+  --> "store normalized utterance file in assetdb-temp"
+}
+--> ===B4===
+
+partition closed-captions-generator #LightSkyBlue {
+  ===B4=== --> "convert normalized utterance file to closed captions file"
+  --> "store closed captions file in assetdb-temp"
+}
+--> ===B5===
+
+partition search-index-creator #LightSkyBlue {
+  ===B4=== --> "convert normalized utterance file to search index file"
+  --> "store search index file in assetdb-temp"
+}
+--> ===B5===
+
+--> "Upload PDF slides, images, raw audio, utterance file, normalized utterance file, timestamp file, word file from assetdb-temp to assetdb"
+--> "Create annotation task for upload in metadb"
+
+--> ===B6===
+--> "Upload video files and MPD file from assetdb-temp to mediadb"
+--> "Upload search index file to searchengine"
+--> "Update metadb entries for all files and set status to finished"
+
+--> (*)
+}
+
+/'
+
+(*)  --> "check input"
+If "input is verbose" then
+--> [Yes] "turn on verbosity"
+--> "run command"
+else
+--> "run command"
+Endif
+-->(*)
+
+hansdag -> mediaprocessor : start docker operator
+activate mediaprocessor
+
+alt input is only audio, slides and timestamp file
+mediaprocessor -> mediaprocessor : convert PDF to images
+mediaprocessor -> mediaprocessor : create video file from images, audio and timestamp file
+else input is video and slides
+end
+mediaprocessor -> mediaprocessor : convert video file for dash streaming
+mediaprocessor -> mediaprocessor : convert media file to wav file
+mediaprocessor -> mediadbtemp : store converted mp4\nfiles and MPD file
+hansdag <- mediaprocessor : docker operator finished
+
+
+
+uploadworker <- mediadb : provide media id
+alt input is only audio, slides and timestamp file
+uploadworker -> assetdb : store slide, image files, timestamp and wav file
+else input is video and slides
+uploadworker -> assetdb : store slide and wav file
+end
+uploadworker <- assetdb : provide asset id
+uploadworker -> metadb : create initial entry\nincl. media id and asset id
+uploadworker <- metadb : provide entry id
+uploadworker -> procqueue : create processing job
+uploadworker -> uploadqueue : job finished
+deactivate uploadworker
+
+
+procworker -> procqueue : fetch new job
+activate procworker
+procworker -> procworker : parse job execution chain
+procworker -> asrqueue : create ASR job for entry id
+
+asrworker -> asrqueue : fetch new job
+activate asrworker
+asrworker -> metadb : Fetch asset id
+asrworker <- metadb : Provide asset id
+asrworker -> assetdb : Fetch wav file
+asrworker <- assetdb : wav file data
+asrworker -> asrworker : recognize
+asrworker -> assetdb : store lattices as json file in asset id
+asrworker <- metadb : provide lattices id
+asrworker -> metadb : update entry by entry id\nadd lattices id
+asrworker <- metadb : provide entry id
+asrworker -> asrqueue : job finished
+deactivate asrworker
+
+procworker <- asrqueue : ASR job finished
+procworker -> ccqueue : create closed caption job for entry id
+
+ccworker -> ccqueue : fetch new job
+activate ccworker
+ccworker -> metadb : Fetch asset id
+ccworker <- metadb : Provide asset id
+ccworker -> assetdb : Fetch lattices json data by lattices id
+ccworker <- assetdb : lattices json data
+ccworker -> ccworker : generate closed captions
+ccworker -> assetdb : store closed captions as json file in asset id
+ccworker <- assetdb : provide closed captions file id
+ccworker -> metadb : update entry by entry id\nadd closed captions file id
+ccworker <- metadb : provide entry id
+ccworker -> ccqueue : job finished
+deactivate ccworker
+
+procworker <- ccqueue : closed caption job finished
+
+rnote over procworker : Other workers are started\nin similar way. If all job chain\ndefined jobs finished the final\nupdate is provided in the metadb:
+
+procworker -> metadb : update entry by entry id\nadd finished flag
+procworker <- metadb : provide entry id
+procworker -> procqueue : job finished
+deactivate procworker
+'/
+@enduml

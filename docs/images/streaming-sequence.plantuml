@@ -1,0 +1,24 @@
+@startuml streaming-sequence
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/flask>
+
+actor User as user
+participant "Vue.js\nfrontend" as vuejs
+participant "<$flask>\nfrontend" as flask
+
+database "mediadb\nbackend" as mediadb
+
+rnote over user : User enters the webpage
+activate vuejs
+user -> vuejs : presses on a media file thumbnail
+vuejs -> vuejs : load player
+vuejs <-> mediadb : load media file stream
+vuejs -> vuejs : start playback
+deactivate flask
+vuejs -> user : playback started
+deactivate vuejs
+@enduml

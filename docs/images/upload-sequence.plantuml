@@ -1,0 +1,75 @@
+@startuml upload-sequence
+/' Theme https://plantuml.com/en/theme '/
+!theme cerulean
+/' Logos and icons loaded using stdlib https://plantuml.com/en/stdlib '/
+/' https://github.com/plantuml/plantuml-stdlib/tree/master/logos '/
+!include <logos/airflow>
+!include <logos/flask>
+
+actor User as user
+participant "Vue.js\nfrontend" as vuejs
+participant "<$flask>\nfrontend" as flask
+
+database "mediadb\nbackend" as mediadb
+database "assetdb\nbackend" as assetdb
+database "metadb\nbackend" as metadb
+
+participant "Airflow\n\n<$airflow>\nml-backend" as airflow
+participant "hans_v1 DAG\nml-backend" as hansdag
+database "assetdb-temp\nml-backend" as assetdbtemp
+
+rnote over user : User enters the webpage
+activate vuejs
+user -> vuejs : navigate to upload form
+user -> vuejs : enter details in the upload form
+user -> vuejs : presses upload button
+vuejs -> flask : https post upload files
+activate flask
+flask -> assetdb : upload files
+flask -> metadb : create initial entry\nincl. media id and asset id
+flask -> flask : create oauth2 bearer token for hans_v1 DAG
+flask -> airflow : schedule hans_v1 DAG with config\nincl. api key access token, media id, media type, asset ids, asset types, language
+airflow -> hansdag : run DAG
+activate hansdag
+airflow -> flask : update hans_v1 DAG workflow progress
+flask -> vuejs : visualize hans_v1 DAG workflow progress
+vuejs -> user : transfer in progress
+hansdag -> flask : authenticate using oauth2 bearer token
+hansdag <- flask : authenticated
+hansdag -> flask : generate pre-signed urls fo uploaded files from assetdb
+flask <- assetdb : provide pre-signed urls for uploaded files
+hansdag <- flask : send pre-signed urls for uploaded files
+hansdag -> assetdbtemp : store uploaded files in assetdb-temp using pre-signed urls
+hansdag -> hansdag : execute DAG
+airflow -> flask : update hans_v1 DAG workflow progress
+flask -> vuejs : visualize hans_v1 DAG workflow progress
+vuejs -> user : processing in progress
+hansdag -> hansdag : transcript is ready
+hansdag -> flask : create annotation task for metadb entry
+flask -> vuejs : visualize annotation task for metadb entry
+vuejs -> user : trigger user to annotate the uploaded media file
+user -> user : annotate the uploaded media file
+vuejs -> flask : provide final annotations for media file
+flask -> assetdb : store annotations in assetdb
+hansdag -> hansdag : media file is converted
+airflow -> flask : update hans_v1 DAG workflow progress
+flask -> vuejs : visualize hans_v1 DAG workflow progress
+vuejs -> user : processing is finished
+hansdag -> flask : upload hans_v1 DAG result assets from assetdb-temp to assetdb
+assetdbtemp -> flask : provide result assets
+flask -> assetdb : upload result assets
+hansdag -> flask : upload hans_v1 DAG result media files from assetdb-temp to mediadb
+assetdbtemp -> flask : provide result media files
+flask -> mediadb : upload result media files
+hansdag -> flask : upload hans_v1 DAG result meta data from assetdb-temp to metadb
+assetdbtemp -> flask : provide result meta data
+flask -> metadb : upload result meta data
+airflow <- hansdag : DAG finished
+deactivate hansdag
+airflow -> flask : hans_v1 DAG finished
+flask -> vuejs : visualize hans_v1 DAG workflow finished
+flask -> vuejs : upload finished
+vuejs -> user : upload finished
+deactivate flask
+deactivate vuejs
+@enduml

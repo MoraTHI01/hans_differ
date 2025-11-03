@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+              integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+              crossorigin="anonymous">
+
+        <style>
+            .video-player-container {
+                height: auto;
+            }
+
+            .video-player {
+                /* always have an aspect ratio from 16/9, taken from https://www.sitepoint.com/maintain-image-aspect-ratios-responsive-web-design/ */
+                position: relative;
+                height: 0;
+                padding: 56.25% 0 0 0;
+            }
+
+            .video-details {
+                float: left;
+            }
+
+            .slideshow {
+                height: 60px;
+                padding: 5px;
+                overflow-x: scroll;
+                overflow-y: hidden;
+                white-space: nowrap;
+                margin-right: 16px;
+                margin-left: 16px;
+            }
+
+            .slide {
+                display: inline-block;
+                height: 50px;
+                width: 50px;
+                margin-right: 5px;
+            }
+
+            .avatar {
+                width: 50px;
+                height: auto;
+            }
+
+            .transcript-container {
+                padding-top: 10px;
+            }
+
+            .transcript {
+                height: 200px;
+            }
+        </style>
+    </head>
+
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-4 card border p-1 video-player-container">
+            <div class="ratio ratio-16x9">
+                <div class="border"></div>
+            </div>
+
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <!-- description -->
+                    <h5 class="card-text my-2">Computational Science for people without money</h5>
+                    <!-- video details -->
+                    <div class="video-details d-flex align-items-center">
+                        <!-- avatar -->
+                        <img src="../images/person-avatar.jpg" alt="avator" class="rounded-circle avatar">
+
+                        <ul class="list-unstyled" style="display: inline-block; margin-bottom: 0;margin-left: 16px;">
+                            <li class="text-small">Computational Finance - WS20 - Lesson 1</li>
+                            <li class="text-small">Prof. Dr. Susanne Meier</li>
+                        </ul>
+                    </div>
+                    <!-- video details end -->
+
+                </div>
+
+                <hr style="margin: 10px 16px;">
+
+                <div class="slideshow">
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                    <div class="border slide"></div>
+                </div>
+
+                <div class="card-body transcript-container">
+                    Transcript
+                    <div class="transcript border"></div>
+                </div>
+
+            </div>
+
+
+        </div>
+
+        <!-- search results in video -->
+        <div class="col-4 card border p-1 video-player-container">
+            <div class="card border">
+
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active">Financial</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link inactive">Computing</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="result" style="padding: 5px">
+                    <div style="width: 50px; height: 50px; float: left; margin-right: 10px;" class="border"></div>
+
+                    <span class="result-context" style="float: left;">
+                        Lorem ipsum dolor sit amet, consectetur adipis
+                    </span>
+                </div>
+                <hr>
+
+
+            </div>
+        </div>
+        <!-- search results in video end -->
+    </div>
+</div>
+</body>
+</html>
