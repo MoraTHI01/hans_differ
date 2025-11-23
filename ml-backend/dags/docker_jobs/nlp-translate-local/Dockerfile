@@ -33,8 +33,7 @@ COPY . .
 ENV LANG C.UTF-8
 
 RUN python3 -m pip install minio
-RUN cd /code/modules/connectors && chmod -R +x * && \
-cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
+RUN cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
 
 RUN cd /code && chmod +x translate.sh \
 && chmod +x init_translate.py \
@@ -43,4 +42,5 @@ RUN cd /code && chmod +x translate.sh \
 
 RUN cd /code && python3 -m pip install torch==2.0.1+cu118 torchaudio==2.0.2 --extra-index-url https://download.pytorch.org/whl/cu118
 RUN cd /code && python3 -m pip install -r requirements.txt
+RUN cd /code && python3 -m pip install /code/modules/dist/hans_shared_modules-0.1-py3-none-any.whl
 RUN cd /code && python3 init_translate.py

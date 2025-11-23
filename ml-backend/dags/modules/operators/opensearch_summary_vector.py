@@ -10,19 +10,6 @@ import requests
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
-def create_vector(chunk: str, tei_url: str) -> list[list[float]]:
-    # Call embedding service to create chunk vectors
-    all_embeddings = []
-    payload = {"inputs": [chunk]}
-    response = requests.post(tei_url, json=payload)
-    embeddings_data = response.json()
-    return embeddings_data[0]
-
-
 def create_opensearch_summary_vector(
     summary_data,
     summary_data_key,
@@ -30,7 +17,7 @@ def create_opensearch_summary_vector(
     download_meta_urn_key,
     opensearch_vectors_data,
     opensearch_vectors_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Creates the opensearch vector entries (of one video) for the opensearch engine.
@@ -41,7 +28,7 @@ def create_opensearch_summary_vector(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str opensearch_vectors_data: XCOM data containing URN for the upload of the opensearch document to assetdb-temp
     :param str opensearch_vectors_urn_key: XCOM Data key to used to determine the URN for the upload of the opensearch document.
-    :param bool use_orchestrator: Whether to use inference orchestrator for text embedding service or not.
+    :param dict llm_configs: Configurations for all llm models
     """
     import json
     import time
@@ -49,20 +36,29 @@ def create_opensearch_summary_vector(
     from io import BytesIO
     from copy import deepcopy
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
-    from modules.operators.opensearch_summary_vector import create_vector
+
+    # Get embeddings remote config
+    embedding_remote_config = get_connection_config("embeddings_remote")
+    embedding_remote_config["embedding_task"] = llm_configs["embedding_task"]
+    embedding_remote_config["embedding_model_id"] = llm_configs["embedding_model_id"]
 
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
 
-    # Configure connector_provider and connect assetdb_temp_connector
-    connector_provider.configure({"assetdb_temp": assetdb_temp_config})
-
+    # Configure connector_provider
+    connector_provider.configure(
+        {"assetdb_temp": assetdb_temp_config, "embedding_remote_config": embedding_remote_config}
+    )
     assetdb_temp_connector = connector_provider.get_assetdbtemp_connector()
     assetdb_temp_connector.connect()
+
+    # Connect to embeddings
+    embedding_connector = connector_provider.get_embedding_connector()
+    embedding_connector.connect()
 
     summary_urn = get_data_from_xcom(summary_data, [summary_data_key])
     summary_response = assetdb_temp_connector.get_object(summary_urn)
@@ -82,22 +78,6 @@ def create_opensearch_summary_vector(
     meta_response.close()
     meta_response.release_conn()
 
-    # Get text embedding service remote config
-    tei_config = get_connection_config("text_embedding_remote")
-    tei_schema = tei_config["schema"]
-    tei_host = tei_config["host"]
-    tei_port = str(tei_config["port"])
-
-    tei_url_base = tei_schema + "://" + tei_host + ":" + tei_port
-    if use_orchestrator is True:
-        tei_url_demand = tei_url_base + "/demand_text_embedding_service"  # Todo: verify url defined by orchestrator
-        tei_url_info = tei_url_base + "/info"
-        # TODO: call demand and check availability with info until TEI service is available
-        tei_url = tei_url_base + "/text_embedding_service/embed"
-    else:
-        tei_url = tei_url_base + "/embed"
-
-    print("***** TEI URL:", tei_url, flush=True)
     summary_text = summary_json["result"][0]["summary"]
     # sentences_en = [
     #     s["transcript_formatted"].strip() for s in transcript_en_json["result"] if s["transcript_formatted"].strip()
@@ -124,7 +104,7 @@ def create_opensearch_summary_vector(
     # Add temporary ID fields
     out_data["lecture_id"] = "<undefined>"  # will be added when inserting entry in vector index
     # Create vectors
-    vector = create_vector(summary_text, tei_url)
+    vector = embedding_connector.gen_embedding_for_text(summary_text)
     out_data["embedding"] = vector
 
     # Store data
@@ -152,6 +132,7 @@ def op_create_opensearch_summary_vector(
     download_meta_urn_key,
     opensearch_data,
     opensearch_urn_key,
+    llm_configs={},
 ):
     """
     Provides PythonVirtualenvOperator to create an opensearch document on the assetdb-temp storage.
@@ -165,6 +146,7 @@ def op_create_opensearch_summary_vector(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str opensearch_data: XCOM data containing URN for the upload of the opensearch document to assetdb-temp
     :param str opensearch_urn_key: XCOM Data key to used to determine the URN for the upload of the opensearch document.
+    :param dict llm_configs: Configurations for all llm models
 
     :return: PythonVirtualenvOperator Operator to create opensearch document on the assetdb-temp storage.
     """
@@ -180,9 +162,11 @@ def op_create_opensearch_summary_vector(
             download_meta_urn_key,
             opensearch_data,
             opensearch_urn_key,
+            llm_configs,
         ],
-        # requirements=[PIP_REQUIREMENT_MINIO, 'nltk'],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        # requirements=[ "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", 'nltk'],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

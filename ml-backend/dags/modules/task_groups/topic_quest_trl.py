@@ -14,12 +14,12 @@ def topic_quest_trl(parent_dag, dag_group_name_download_media_files, container_i
     :return: TaskGroup to use in a DAG
     :rtype: airflow.utils.task_group.TaskGroup
     """
-    use_orchestrator = False
-    if "use_orchestrator" in config:
-        use_orchestrator = config["use_orchestrator"]
     use_nlp_translate_remote = False
     if "use_nlp_translate_remote" in config:
         use_nlp_translate_remote = config["use_nlp_translate_remote"]
+    llm_configs = {}
+    if "llm_configs" in config:
+        llm_configs = config["llm_configs"]
     with TaskGroup("topic_quest_trl") as group6:
         # XCOM injection helper
         from modules.operators.xcom import inject_xcom_data
@@ -88,7 +88,7 @@ def topic_quest_trl(parent_dag, dag_group_name_download_media_files, container_i
                     parent_dag.dag_id, "topic_quest_trl", "op_create_new_urn_on_assetdbtemp", "topic_result_en_urn"
                 ),
                 upload_data_key="topic_result_en_urn",
-                use_orchestrator=use_orchestrator,
+                llm_configs=llm_configs,
             )
             t2.doc_md = """\
               #NLP Translation
@@ -156,7 +156,7 @@ def topic_quest_trl(parent_dag, dag_group_name_download_media_files, container_i
                     "questionnaire_result_en_urn",
                 ),
                 upload_data_key="questionnaire_result_en_urn",
-                use_orchestrator=use_orchestrator,
+                llm_configs=llm_configs,
             )
             t5.doc_md = """\
              #NLP Translation

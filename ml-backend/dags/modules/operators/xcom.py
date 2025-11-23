@@ -13,8 +13,6 @@ import pendulum
 from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
-PIP_REQUIREMENT_MINIO = "minio"
-
 
 def gen_task_id(dag_id, operator_name, operator_taskid_suffix):
     """
@@ -141,7 +139,12 @@ def op_get_data_from_xcom(dag, dag_id, task_id_suffix, xcom_data, xcom_data_keys
         task_id=gen_task_id(dag_id, "op_get_data_from_xcom", task_id_suffix),
         python_callable=get_data_from_xcom,
         op_args=[xcom_data, xcom_data_keys],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -168,7 +171,12 @@ def op_get_single_data_from_xcom_json(dag, dag_id, task_id_suffix, xcom_data, xc
         task_id=gen_task_id(dag_id, "op_get_single_data_from_xcom_json", task_id_suffix),
         python_callable=get_single_data_from_xcom_json,
         op_args=[xcom_data, xcom_data_keys, output_key],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

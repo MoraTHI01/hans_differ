@@ -63,10 +63,10 @@ mkdir -p ./logs ./plugins ./data
 mkdir -p ./data/airflow-temp
 chmod 777 ./data/airflow-temp
 
-: # Sparse checkout airflow and set to release https://github.com/apache/airflow/releases/tag/2.5.3
+: # Sparse checkout airflow and set to release https://github.com/apache/airflow/releases/tag/2.10.5
 if [[ ! -d airflow ]];
 then
-    git clone --filter=blob:none --branch 2.5.3 https://github.com/apache/airflow.git airflow
+    git clone --filter=blob:none --branch 2.10.5 https://github.com/apache/airflow.git airflow
     cd airflow
     git sparse-checkout set /Dockerfile* /scripts/ /docker-context-files/ /empty/
     cd ..
@@ -118,15 +118,15 @@ do
     then
         mkdir $jobdir/modules/
     fi
-    touch $jobdir/modules/__init__.py
-    if [[ ! -d $jobdir/modules/connectors ]];
+    if [[ ! -d $jobdir/modules/dist ]];
     then
-        mkdir $jobdir/modules/connectors/
+        mkdir $jobdir/modules/dist/
     fi
-    cp -r dags/modules/connectors/* $jobdir/modules/connectors/
+    cp -rf ../common/modules/dist/*.whl $jobdir/modules/dist/
     : # Clean pycache folder before building
     rm -Rf $jobdir/modules/__pycache__
     rm -Rf $jobdir/modules/connectors/__pycache__
+    rm -Rf $jobdir/modules/llm/__pycache__
     : # Provide common job files into each jobdir
     cp -r dags/docker_jobs_common/* $jobdir/
     build_flags="--force-rm"

@@ -16,22 +16,17 @@ from airflow.operators.python import PythonVirtualenvOperator
 import requests
 import json
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
 
-
-def verify_llm_result(llm_response_json):
+def verify_llm_result(response):
     """
     Verify llm result content
     """
-    import json
     from airflow.exceptions import AirflowFailException
 
-    if not "generated_text" in llm_response_json:
-        raise AirflowFailException("Error no generated_text found!")
-    elif "error" in llm_response_json:
-        error = llm_response_json["error"]
-        raise AirflowFailException(f"Error with the remote request occured! Error: {error}")
+    if response and len(response) < 1:
+        raise AirflowFailException("Error no text length is 0!")
+    elif response is None:
+        raise AirflowFailException(f"Error with the remote request occured!")
     return True
 
 
@@ -104,7 +99,7 @@ def parse_timestamp(subtext):
         raise ValueError(f"Failed to parse webvtt timestamp from text: {subtext}")
 
 
-def create_topic_result(llm_response_json):
+def create_topic_result(llm_response):
     """
     Parses llm response and creates ShortSummaryResult
     """
@@ -114,10 +109,10 @@ def create_topic_result(llm_response_json):
     from modules.operators.llm_remote import verify_llm_result
     from modules.operators.llm_remote import parse_timestamp
 
-    if verify_llm_result(llm_response_json) is True:
+    if verify_llm_result(llm_response) is True:
         result = {"type": "TopicResult", "language": "en", "result": []}
         result_index = 0
-        text = llm_response_json["generated_text"]
+        text = llm_response
         text_arr = text.split("\\\\n")
         text_arr_length = len(text_arr)
         print(text_arr_length)
@@ -186,7 +181,7 @@ def create_topic_result(llm_response_json):
         return result
 
 
-def create_short_summary_result(llm_response_json):
+def create_short_summary_result(llm_response):
     """
     Parses llm response and creates ShortSummaryResult
     """
@@ -194,9 +189,9 @@ def create_short_summary_result(llm_response_json):
     from airflow.exceptions import AirflowFailException
     from modules.operators.llm_remote import verify_llm_result
 
-    if verify_llm_result(llm_response_json) is True:
+    if verify_llm_result(llm_response) is True:
         result = {"type": "ShortSummaryResult", "language": "en", "result": []}
-        text = llm_response_json["generated_text"]
+        text = llm_response
         text_arr = text.split("\\\\n")
         text_arr_length = len(text_arr)
         if text_arr_length == 1:
@@ -214,7 +209,7 @@ def create_short_summary_result(llm_response_json):
         return result
 
 
-def create_summary_result(llm_response_json):
+def create_summary_result(llm_response):
     """
     Parses llm response and creates ShortSummaryResult
     """
@@ -222,9 +217,9 @@ def create_summary_result(llm_response_json):
     from airflow.exceptions import AirflowFailException
     from modules.operators.llm_remote import verify_llm_result
 
-    if verify_llm_result(llm_response_json) is True:
+    if verify_llm_result(llm_response) is True:
         result = {"type": "SummaryResult", "language": "en", "result": []}
-        text = llm_response_json["generated_text"]
+        text = llm_response
         text_arr = text.split("\\\\n", 1)
         text_arr_length = len(text_arr)
         if text_arr_length == 1:
@@ -247,44 +242,36 @@ def create_summary_result(llm_response_json):
         return result
 
 
-def remove_initial_markers(text: str, markers: tuple[str, ...]) -> str:
-    """Remove initial tokens which might be added by the LLM."""
-    if text.split(":")[0].lower() in markers:
-        return text.split(":", 1)[1].strip()
-    return text
-
-
-def remove_quotes(text: str) -> str:
-    """Remove quotes if text is quoted like 'text'."""
-    removal_ongoing = True
-    while removal_ongoing:
-        left, right = text[0], text[-1]
-        if left == '"' and right == '"':
-            text = text[1:-1]  # remove " quotes
-        elif left == "'" and right == "'":
-            text = text[1:-1]  # remove ' quotes
-        else:  # no quotes found, stop removal
-            removal_ongoing = False
-    return text
-
-
-def extend_topic_result(url: str, topic_result_data: dict, meta_data: dict) -> dict:
+def extend_topic_result(llm_connector, prompt_base, topic_result_data: dict, meta_data: dict) -> dict:
     """Extend raw topic result file with English topic summaries and titles."""
+    from llm.helpers import remove_initial_markers, remove_quotes
 
-    def _request_and_post_process(mode: str, _text: str, max_tokens: int, rm_quotes: bool = False) -> str:
-        prompt = create_llm_prompt(mode, _text, meta_data)
-        llm_response_json = request_llm_service(url, prompt, max_tokens).json()
-        verify_llm_result(llm_response_json)
-        gen_text = llm_response_json["generated_text"]
-        return gen_text.replace("\n", " ").strip()
+    def _request_and_post_process(
+        llm_connector, prompt_base, mode: str, _text: str, max_tokens: int, rm_quotes: bool = False
+    ) -> str:
+        custom_config = {}
+        custom_config["max_new_tokens"] = max_tokens
+        messages = create_llm_messages(prompt_base, mode, _text, meta_data)
+        gen_text = llm_connector.query_llm(messages=messages, custom_config=custom_config)
+        # gen_text = gen_text.replace("\n", " ").replace("\\n", " ").strip()
+        print(f"gen_text: {gen_text}")
+        if len(gen_text) < 1:
+            print(f"Empty gen_text for input text: {_text}")
+            custom_config = {}
+            custom_config["temperature"] = 0.0
+            custom_config["frequency_penalty"] = 0.3
+            messages = create_llm_messages(prompt_base, mode, _text, meta_data)
+            gen_text = llm_connector.query_llm(messages=messages, custom_config=custom_config)
+            # gen_text = gen_text.replace("\n", " ").strip()
+        return gen_text
 
     for n, segment in enumerate(topic_result_data["result"]):
         text = segment.pop("text")
         # 1. Generate topic summary
-        summary = _request_and_post_process("topic_summary", text, 512)
+        summary = _request_and_post_process(llm_connector, prompt_base, "topic_summary", text, 512)
         print("Topic summary generated by LLM:", summary)
         # 2. Generate topic title
-        title = _request_and_post_process("topic_title", text, 64, rm_quotes=True)
+        title = _request_and_post_process(llm_connector, prompt_base, "topic_title", text, 64, rm_quotes=True)
         print("Topic title generated by LLM:", title)
 
         title = (
@@ -302,48 +289,28 @@ def extend_topic_result(url: str, topic_result_data: dict, meta_data: dict) -> d
     return topic_result_data
 
 
-def create_questionnaire_result(mode, url: str, topic_result_data: dict, meta_data: dict) -> dict:
+def create_questionnaire_result(llm_connector, prompt_base, mode, topic_result_data: dict, meta_data: dict) -> dict:
     """Extend raw topic result file with English topic summaries and titles."""
     from dataclasses import dataclass
     from typing import Optional, Union
     from pydantic import BaseModel, constr, conint, conlist
-    import re
-
-    # Classes to constrain LLM output
-
-    class MultipleChoiceAnswer(BaseModel):
-        index: conint(ge=0, lt=4)
-        answer: constr(max_length=120)
-
-    class MultipleChoiceQuestion(BaseModel):
-        question: constr(max_length=240)
-        answers: conlist(item_type=MultipleChoiceAnswer, min_length=4, max_length=4)
-        correct_answer_index: conint(ge=0, lt=4)
-        correct_answer_explanation: constr(max_length=512)
-
-    # Result data classes
-
-    @dataclass
-    class RawSegment:
-        result_index: int
-        interval: tuple[float, float]
-        text: str
-
-    @dataclass
-    class QuestionnaireResult:
-        type: str = "QuestionnaireResult"
-        language: str = "UNK"
-        result: Optional[list[RawSegment]] = None
+    from llm.helpers import shorten_transcript
 
     def _request_and_post_process(
-        mode: str, grade: str, _text: str, max_tokens: int, avoid: str = None, **kwargs
+        llm_connector, prompt_base, mode: str, grade: str, _text: str, custom_config: dict = {}, avoid: str = None
     ) -> str:
+        import json
+        from llm.schema_base import MultipleChoiceQuestion
+
         print("***********************")
         print(f"input text: {_text}")
         print(f"avoid: {avoid}")
-        prompt = create_llm_prompt(mode + "_" + grade, _text, meta_data, avoid)
-        print(f"prompt: {prompt}")
-        return request_llm_service(url, prompt, max_tokens, MultipleChoiceQuestion.model_json_schema(), **kwargs)
+        messages = create_llm_messages(prompt_base, mode + "_" + grade, _text, meta_data, avoid)
+        print(f"messages: {messages}")
+        response = llm_connector.query_llm(
+            messages=messages, schema=MultipleChoiceQuestion.model_json_schema(), custom_config=custom_config
+        )
+        return json.loads(response)
 
     quests_per_grade = 1
     seg_count = len(topic_result_data["result"])
@@ -359,33 +326,22 @@ def create_questionnaire_result(mode, url: str, topic_result_data: dict, meta_da
             quest_count = 0
             while quest_count < quests_per_grade:
                 print(f"Text: {text}", flush=True)
-                # Custom params - "Reduce creativity" for the LLM, since we need a parsable JSON format:
-                #  - do_sample=False: Always generate the most probable next token instead of sampling
-                #  - increase penalties for repetition and frequency
-                #  - decrease max_tokens to force the model to be more concise when generating the JSON
-                params = {"do_sample": False, "temperature": 0.15}
-                questionnaire_resp = _request_and_post_process(mode, grade, text, 8192, avoid, **params)
                 try:
-                    llm_response_json = questionnaire_resp.json()
-                    verify_llm_result(llm_response_json)
-                    gen_text = llm_response_json["generated_text"].replace("\n", " ").strip()
-                    print(f"gen_text: {gen_text}")
-                    print(f"Topic questionnaire generated by LLM: {gen_text}", flush=True)
-                    questionnaire = json.loads(gen_text.replace("\n", "").replace(" ?", "?").strip())
-                except Exception as e2:
-                    print(f"Error parsing question JSON: {e2}", flush=True)
+                    questionnaire = _request_and_post_process(llm_connector, prompt_base, mode, grade, text, {}, avoid)
+                    print(f"Topic questionnaire generated by LLM: {questionnaire}", flush=True)
+                except Exception:
                     print("-> Try another time with shortened text", flush=True)
-                    text = shorten_transcript(text)
-                    params["temperature"] = 0.15
-                    params["frequency_penalty"] = 0.3
-                    params["repetition_penalty"] = 1.2
-                    questionnaire_resp = _request_and_post_process(mode, grade, text, 4096, avoid, **params).strip()
-                    llm_response_json = questionnaire_resp.json()
-                    verify_llm_result(llm_response_json)
-                    gen_text = llm_response_json["generated_text"].replace("\n", " ").strip()
-                    print(f"gen_text: {gen_text}")
-                    print(f"Topic questionnaire generated by LLM: {gen_text}", flush=True)
-                    questionnaire = json.loads(gen_text.replace("\n", "").replace(" ?", "?").strip())
+                    text = shorten_transcript(text, model_id=llm_connector.llm_model_id)
+                    #  - do_sample=False: Always generate the most probable next token instead of sampling
+                    #  - decrease max_tokens to force the model to be more concise when generating the JSON
+                    custom_config = {}
+                    custom_config["temperature"] = 0.0
+                    custom_config["frequency_penalty"] = 0.3
+                    custom_config["max_new_tokens"] = 4096
+                    questionnaire = _request_and_post_process(
+                        llm_connector, prompt_base, mode, grade, text, custom_config, avoid
+                    )
+                    print(f"Topic questionnaire generated by LLM: {questionnaire}", flush=True)
 
                 questionnaire["creator"] = "llm"
                 questionnaire["editor"] = ""
@@ -403,33 +359,37 @@ def create_questionnaire_result(mode, url: str, topic_result_data: dict, meta_da
     return topic_result_data
 
 
-def create_keywords_result(url: str, slides_text: str, slides_language: str, meta_data: dict) -> dict:
+def create_keywords_result(llm_connector, prompt_base, slides_text: str, slides_language: str, meta_data: dict) -> dict:
     """Create list of keywords using LLM prompt with enforced json schema."""
     from typing import List
     from pydantic import BaseModel
+    from llm.helpers import shorten_transcript
     import re
+    import json
 
     class Keywords(BaseModel):
         keywords: List[str]
 
     # Prompt LLM
-    slides_text = shorten_transcript(slides_text)
-    prompt = create_llm_prompt("keywords", slides_text, meta_data)
-    llm_params = {"do_sample": False, "repetition_penalty": 1.2, "frequency_penalty": 0.3}
+    slides_text = shorten_transcript(slides_text, model_id=llm_connector.llm_model_id)
+    messages = create_llm_messages(prompt_base, "keywords", slides_text, meta_data)
+    #  - do_sample=False: Always generate the most probable next token instead of sampling
+    custom_config = {}
+    custom_config["temperature"] = 0.0
+    custom_config["max_new_tokens"] = 12288
+    response = ""
     try:
-        llm_response = request_llm_service(
-            url, prompt, max_new_tokens=12288, schema=Keywords.model_json_schema(), **llm_params
+        response = llm_connector.query_llm(
+            messages=messages, schema=Keywords.model_json_schema(), custom_config=custom_config
         )
-        llm_response_json = llm_response.json()
-        verify_llm_result(llm_response_json)
-        gen_text = llm_response_json["generated_text"]
-        keywords = json.loads(gen_text)["keywords"]
+        response_json = json.loads(response)
+        keywords = response_json["keywords"]
         print("***** Keywords generated by LLM:", keywords)
     except Exception as e:
         print(f"Error parsing keywords JSON: {e}")
         print("-> Fallback to extracting the keywords from the generated text using regex")
-        print(f"gen_text: {gen_text}")
-        keyword_list = re.findall(r'"(.*?)"', gen_text.strip().replace("\\n", " "))
+        print(f"gen_text: {response}")
+        keyword_list = re.findall(r'"(.*?)"', response.strip().replace("\\n", " "))
         keywords = [s for s in keyword_list if s != "keywords" and len(s) < 33]
         print("***** Keywords extracted by regex:", keywords)
     # Post-process keywords
@@ -456,206 +416,41 @@ def create_keywords_result(url: str, slides_text: str, slides_language: str, met
     return keywords_result_data
 
 
-def calc_token_len(text):
-    """
-    Give an approx. number of tokens
-    """
-    import tiktoken
+def create_llm_messages(
+    prompt_base, mode: str, context_data: str, meta_data: dict, avoid: str = None
+) -> list[dict[str, str]]:
+    from llm.helpers import gen_messages
 
-    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    num_tokens = len(encoding.encode(text))
-    return num_tokens
-
-
-def tokenizers_normalize_text(text):
-    """
-    Normalize text using tokenizers
-    """
-    from tokenizers import normalizers
-    from tokenizers.normalizers import NFD, StripAccents
-
-    normalizer = normalizers.Sequence([NFD(), StripAccents()])
-    return normalizer.normalize_str(text)
-
-
-def remove_punctuation(text, punctuation='.!?"、。।，@<”,;¿¡&%#*~【】，…‥「」『』〝〟″⟨⟩♪・‹›«»～′$+="'):
-    """
-    Remove punctuation
-    """
-    for member in punctuation:
-        text = text.replace(member, "")
-    return text
-
-
-def get_most_frequent_words(text):
-    """
-    Get most frequent words list
-    """
-    from collections import Counter
-
-    freq = Counter(text.split())
-    # print(freq)
-    mc = freq.most_common(5)
-    words = [item[0].lower() for item in mc]
-    words.remove("-->")
-    print(words)
-    return words
-
-
-def remove_most_frequent_words(text):
-    """
-    Removes stop words to lower final token size
-    """
-    from modules.operators.llm_remote import get_most_frequent_words
-
-    freq_words = get_most_frequent_words(text)
-    words = [word for word in text.split() if word.lower() not in freq_words]
-    return " ".join(words).strip()
-
-
-def remove_until_next_word(text):
-    """
-    Remove specific word until next word
-    """
-    import re
-
-    # Define a regular expression pattern to match "-->" followed by any non-space characters
-    pattern = r"^-->\s*"
-
-    # Replace the pattern with an empty string to remove it until the next word
-    result = re.sub(pattern, "", text)
-
-    return result
-
-
-def remove_sentences(text, val=7):
-    """
-    Remove every x sentences from text
-    """
-    import re
-
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-    sentences_shrink = [item for i, item in enumerate(sentences) if (i + 1) % val != 0]
-    return " ".join(sentences_shrink)
-
-
-def remove_word(text, val=7):
-    """
-    Remove words x sentences from text
-    """
-    words = text.split(" ")
-    words_shrink = [item for i, item in enumerate(words) if (i + 1) % val != 0]
-    return " ".join(words_shrink)
-
-
-def shorten_transcript(context_data: str) -> str:
-    # shrink token size by removing stop words from text if approx. token size is too big
-    print(f"context_data before ascii: {context_data}")
-    context_data_tk_len = calc_token_len(context_data)
-    print(f"Token length before ascii: {context_data_tk_len}")
-    context_data = tokenizers_normalize_text(context_data).encode("ascii", "ignore").decode().replace("\n", " ")
-    print(f"context_data ascii: {context_data}")
-    context_data_tk_len = calc_token_len(context_data)
-    print(f"Token length ascii: {context_data_tk_len}")
-
-    token_limit = 20480  # 10240 7168 6120
-    context_data_tk_len_prev = context_data_tk_len
-    stop_now = False
-    if context_data_tk_len > token_limit:
-        while context_data_tk_len > token_limit and not stop_now:
-            context_data = remove_sentences(context_data)
-            context_data_tk_len = calc_token_len(context_data)
-            print(f"Token length after remove sentences: {context_data_tk_len}")
-            if context_data_tk_len_prev > context_data_tk_len:
-                context_data_tk_len_prev = context_data_tk_len
-            else:
-                stop_now = True
-    if stop_now is True:
-        if context_data_tk_len > token_limit:
-            while context_data_tk_len > token_limit:
-                context_data = remove_word(context_data)
-                context_data_tk_len = calc_token_len(context_data)
-                print(f"Token length after remove sentences: {context_data_tk_len}")
-    print(f"context_data final: {context_data}")
-    context_data_tk_len = calc_token_len(context_data)
-    print(f"Token length final: {context_data_tk_len}")
-    return context_data
-
-
-def create_llm_prompt(mode: str, context_data: str, meta_data: dict, avoid: str = None) -> str:
     title = meta_data["title"]
     course = meta_data["description"]["course"]
-    context_sentence = f"strictly rely on the following video transcript: {context_data}"
-    system_prompt = "### System:\\nYour name is HAnSi. HAnSi is an AI that follows instructions extremely well. Help as much as you can. Remember, be safe, and don't do anything illegal. You respond in English.\\n\\n"
-    message = ""
+    lang = "en"
+    context_sentence = prompt_base.get_context_sentence(context_data, lang=lang)
+    system_prompt = prompt_base.get_short_system_prompt(lang=lang) + prompt_base.get_force_language_english_addon(
+        lang=lang
+    )
+
+    user_prompt = ""
     if mode == "summary":
-        message = f"Create a text summary focussing on the lecture title '{course}' and the video title '{title}' omit newline and omit characters '!', '?', and '=' and {context_sentence}"
+        user_prompt = prompt_base.get_summary_prompt(title, course, context_sentence, lang=lang)
     elif mode == "short_summary":
-        message = f"Create a text summary focussing on the lecture title '{course}' and the video title '{title}' omit newline and omit characters '!', '?', and '=' and {context_sentence} Shorten the summary to a maximum of 3 sentences containing the main topic."
+        user_prompt = prompt_base.get_short_summary_prompt(title, course, context_sentence, lang=lang)
     elif mode == "topic":
-        message = f"Create chapter titles and subtitles from the provided video transcript of video '{title}' in relation to the lecture title '{course}' in chronological order together with the start time {context_sentence} Respond with all chapter titles and subtitles included in the video content together with the short summary and start time extracted from the previous transcript similar to the following example: 1. Introduction (00:00:00.000 --> 00:00:04.480) * The video discusses the historical-sociological development of industrialisation, where the epochs are becoming narrower and the division of epochs is coming closer. The video also talks about the bourgeois revolution and the German revolution, and how the state's freedom of action was limited after the Napoleonic wars. The video also touches on the ideas of democracy and the industrial revolution, and how the state's freedom of action was limited after the Napoleonic wars."
+        user_prompt = prompt_base.get_topic_prompt(title, course, context_sentence, lang=lang)
     elif mode == "topic_summary":
-        message = (
-            f"Generate a text summary for the following lecture transcript snippet: \\n'{context_data}'. \\n"
-            f"Omit newline and omit characters '!', '?', and '='. "
-            f"Shorten the summary to a maximum of 3 sentences containing the main topic."
-            f"Your response should comprise only the generated summary, like in the following example:"
-            f"The Industrial Revolution began in late 18th-century England, "
-            f"introducing technologies like the steam engine. This shift transformed agrarian economies "
-            f"into industrial powerhouses, reshaping global trade and society."
-        )
+        user_prompt = prompt_base.get_topic_summary_prompt(context_data, lang=lang)
     elif mode == "topic_title":
-        message = (
-            f"Generate a title for the following lecture transcript snippet: \\n'{context_data}'. \\n"
-            f"Omit newline and omit characters '!', '?', and '='. "
-            f"The title should be short and concise and addressing the main topic of the lecture transcript."
-            f"Your response should comprise only the title, as in the following example: Industrial Revolution."
-        )
+        user_prompt = prompt_base.get_topic_title_prompt(context_data, lang=lang)
     elif "questionnaire" in mode:
         difficulty = mode.rsplit("_")[-1]
-        message = (
-            f"Create a single {difficulty} difficult multiple choice question (max. 240 chars) with 4 short answers (max. 120 chars) with unique index from 0 to 3."
-            f"Provide the correct answers associated index and a short explanation (max. 512 chars) as valid JSON without any newlines strictly following the schema."
-            f"Use only the following text for the generation: \\n'{context_data}'. \\n"
-            f"Avoid the following already generated questions: \\n'{avoid}'. \\n"
-        )
+        avoid_enabled = False
+        if avoid and len(avoid) > 0:
+            avoid_enabled = True
+        user_prompt = prompt_base.get_questionaire_prompt(difficulty, context_data, avoid_enabled, avoid, lang=lang)
     elif mode == "keywords":
-        message = (
-            f"Generate a list of keywords from the following lecture slides text: \\n'{context_data}'. \\n"
-            "Omit newline and omit characters '!', '?', and '='. "
-            "Your response should be in JSON format and contain a maximum of 50 elements in the keywords array, like in the following example:"
-            '{"keywords": ["Industrial Revolution", "18th-century England", "steam engine", '
-            '"agrarian economies", "industrial powerhouses", "global trade", "society"]}.'
-        )
+        user_prompt = prompt_base.get_keywords_prompt(context_data, lang=lang)
     else:
         raise AirflowFailException(f"Error: llm mode '{mode}' not supported!")
-    return f"'{system_prompt}'### Human: '${message}'\\n\\n### Assistant:\\n"
-
-
-def request_llm_service(url: str, prompt: str, max_new_tokens: int = 2048, schema=None, **kwargs):
-    headers = {"Content-Type": "application/json"}
-    if schema is None:
-        payload = {"inputs": prompt, "parameters": {"max_new_tokens": max_new_tokens, "temperature": 0.15}}
-    else:
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": max_new_tokens,
-                # "response_format": {"type": "json_object", "schema": dict(schema)},
-                "grammar": {"type": "json", "value": dict(schema)},
-                "temperature": 0.15,
-            },
-        }
-    if kwargs:
-        print(f"Additional llm generation parameters set: {kwargs}")
-    for param, value in kwargs.items():
-        payload["parameters"][param] = value
-    print(f"Sending request to llm: {url}")
-    response = requests.post(url, data=json.dumps(payload), headers=headers)
-
-    print("Response status code:", response.status_code)
-    print("Response content:", response.content)
-    return response
+    return gen_messages(system_prompt=system_prompt, user_prompt=user_prompt, context_sentence=context_sentence)
 
 
 def prompt_llm_remote(
@@ -666,7 +461,7 @@ def prompt_llm_remote(
     download_meta_urn_key,
     upload_llm_result_data,
     upload_llm_result_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Creates a remote request to a LLM using a specific prompt template mode.
@@ -682,18 +477,17 @@ def prompt_llm_remote(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str upload_llm_result_data: XCOM data containing URN for the upload of the llm result to assetdb-temp
     :param str upload_llm_result_urn_key: XCOM Data key to used to determine the URN for the upload of the llm result.
-    :param bool use_orchestrator: Orchestrator between client and llm: client <-> orchestrator <-> llm , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
     """
     import json
     import time
     import requests
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
-    from modules.operators.llm_remote import calc_token_len, tokenizers_normalize_text, remove_sentences, remove_word
     from modules.operators.llm_remote import (
         create_short_summary_result,
         create_summary_result,
@@ -701,21 +495,30 @@ def prompt_llm_remote(
         create_questionnaire_result,
         create_keywords_result,
     )
-    from modules.operators.llm_remote import shorten_transcript, create_llm_prompt, request_llm_service
+    from modules.operators.llm_remote import create_llm_messages
+    from llm.prompt_base import PromptBase
+    from llm.helpers import shorten_transcript
+
+    # llm model and engine configuration
+    prompt_base = PromptBase()
 
     # Get llm remote config
-    config = get_connection_config("llm_remote")
-    llm_schema = config["schema"]
-    llm_host = config["host"]
-    llm_port = str(config["port"])
+    llm_remote_config = get_connection_config("llm_remote")
+    llm_remote_config["llm_task"] = llm_configs["llm_task"]
+    llm_remote_config["llm_model_id"] = llm_configs["llm_model_id"]
 
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
 
-    # Configure connector_provider and connect assetdb_temp_connector
-    connector_provider.configure({"assetdb_temp": assetdb_temp_config})
+    # Configure connector_provider
+    connector_provider.configure({"assetdb_temp": assetdb_temp_config, "llm_remote_config": llm_remote_config})
+    # Connect to assetdb temp
     assetdb_temp_connector = connector_provider.get_assetdbtemp_connector()
     assetdb_temp_connector.connect()
+
+    # Connect to llm
+    llm_connector = connector_provider.get_llm_connector()
+    llm_connector.connect()
 
     # Load metadata File
     metadata_urn = get_data_from_xcom(download_data, [download_meta_urn_key])
@@ -727,14 +530,8 @@ def prompt_llm_remote(
     meta_response.close()
     meta_response.release_conn()
 
-    url_base = llm_schema + "://" + llm_host + ":" + llm_port
-    if use_orchestrator is True:
-        url_demand = url_base + "/demand_llm_service"
-        url_info = url_base + "/info"
-        # TODO: call demand and check availability with info until LLM is available
-        url = url_base + "/llm_service/generate"
-    else:
-        url = url_base + "/generate"
+    model = llm_configs["llm_model_id"]  # "mistralai/Pixtral-12B-2409"
+    print(f"Model: {model}")
 
     if mode == "topic_summary":
         # Load context files: topic result file
@@ -746,7 +543,7 @@ def prompt_llm_remote(
         topic_result_response.close()
         topic_result_response.release_conn()
 
-        data = extend_topic_result(url, topic_result_data, meta_data)
+        data = extend_topic_result(llm_connector, prompt_base, topic_result_data, meta_data)
         mime_type = HansType.get_mime_type(HansType.TOPIC_RESULT_EN)
     elif mode == "questionnaire":
         # Load context files: topic result raw
@@ -758,7 +555,7 @@ def prompt_llm_remote(
         topic_result_response.close()
         topic_result_response.release_conn()
 
-        data = create_questionnaire_result(mode, url, topic_result_data, meta_data)
+        data = create_questionnaire_result(llm_connector, prompt_base, mode, topic_result_data, meta_data)
         mime_type = HansType.get_mime_type(HansType.QUESTIONNAIRE_RESULT_EN)
     elif mode == "keywords":
         # Load context files: slides meta data
@@ -776,7 +573,11 @@ def prompt_llm_remote(
         slides_text = " ".join(slides_words)
         slides_language = slides_meta_dict["language"]
         data = create_keywords_result(
-            url=url, slides_text=slides_text, slides_language=slides_language, meta_data=meta_data
+            llm_connector=llm_connector,
+            prompt_base=prompt_base,
+            slides_text=slides_text,
+            slides_language=slides_language,
+            meta_data=meta_data,
         )
         mime_type = HansType.get_mime_type(HansType.KEYWORDS_RESULT)
 
@@ -790,20 +591,26 @@ def prompt_llm_remote(
         context_response.close()
         context_response.release_conn()
 
-        context_data = shorten_transcript(context_data)
-        prompt = create_llm_prompt(mode, context_data, meta_data)
-        llm_response_json = request_llm_service(url, prompt, 512).json()
+        context_data = shorten_transcript(context_data, model_id=llm_connector.llm_model_id)
+        messages = create_llm_messages(prompt_base, mode, context_data, meta_data)
         # Store data
         data = None
         mime_type = None
+        custom_config = {}
         if mode == "summary":
-            data = create_summary_result(llm_response_json)
+            custom_config["max_new_tokens"] = 8192
+            llm_response = llm_connector.query_llm(messages=messages, custom_config=custom_config)
+            data = create_summary_result(llm_response)
             mime_type = HansType.get_mime_type(HansType.SUMMARY_RESULT_EN)
         elif mode == "short_summary":
-            data = create_short_summary_result(llm_response_json)
+            custom_config["max_new_tokens"] = 4096
+            llm_response = llm_connector.query_llm(messages=messages, custom_config=custom_config)
+            data = create_short_summary_result(llm_response)
             mime_type = HansType.get_mime_type(HansType.SHORT_SUMMARY_RESULT_EN)
         elif mode == "topic":
-            data = create_topic_result(llm_response_json)
+            custom_config["max_new_tokens"] = 2048
+            llm_response = llm_connector.query_llm(messages=messages, custom_config=custom_config)
+            data = create_topic_result(llm_response)
             mime_type = HansType.get_mime_type(HansType.TOPIC_RESULT_EN)
         else:
             raise AirflowFailException("Error mode not supported!")
@@ -832,7 +639,7 @@ def op_llm_remote_prompt(
     download_meta_urn_key,
     upload_llm_result_data,
     upload_llm_result_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Provides PythonVirtualenvOperator to request a LLM using a specific prompt template mode.
@@ -852,7 +659,7 @@ def op_llm_remote_prompt(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str upload_llm_result_data: XCOM data containing URN for the upload of the llm result to assetdb-temp
     :param str upload_llm_result_urn_key: XCOM Data key to used to determine the URN for the upload of the llm result.
-    :param bool use_orchestrator: Orchestrator between client and llm: client <-> orchestrator <-> llm , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
 
     :return: PythonVirtualenvOperator Operator to create opensearch document on the assetdb-temp storage.
     """
@@ -869,9 +676,10 @@ def op_llm_remote_prompt(
             download_meta_urn_key,
             upload_llm_result_data,
             upload_llm_result_urn_key,
-            use_orchestrator,
+            llm_configs,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "tiktoken", "tokenizers==0.14.0", "pydantic"],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

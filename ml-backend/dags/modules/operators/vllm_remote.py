@@ -16,318 +16,29 @@ from airflow.operators.python import PythonVirtualenvOperator
 import requests
 import json
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
 
+def create_vllm_messages(
+    prompt_base, mode: str, context_data: str, meta_data: dict, img_input=None, fallback=False
+) -> list[dict[str, str]]:
+    from llm.helpers import gen_messages
 
-def markdown_to_plain_text(markdown_text):
-    """
-    Convert markdown to plain text
-    """
-    from markdown import markdown
-    from bs4 import BeautifulSoup
-
-    # Convert Markdown to HTML
-    html = markdown(markdown_text)
-    # Use BeautifulSoup to parse HTML and extract text
-    soup = BeautifulSoup(html, "html.parser")
-    return soup.get_text()
-
-
-def remove_urls(text):
-    """
-    Remove urls from a text
-    """
-    import re
-
-    # Remove URLs that start with http or https
-    return re.sub(r"http[s]?://\S+", "", text)
-
-
-def find_frequent_words(text):
-    """
-    Find frequent words in text
-    """
-    import re
-
-    # Remove punctuation and split into words
-    cleaned_text = remove_urls(text)
-    return re.findall(r"\b(?!http|https)\w+\b", cleaned_text)
-
-
-def find_all_urls(text):
-    """
-    Find urls in text
-    """
-    import re
-
-    # Find all URLs using re.findall
-    fin_text = text.replace("http:", " http:").replace("https:", " https:")
-    urls = re.findall(r"(https?://[^\s]+)", fin_text)
-    return urls
-
-
-def is_url_valid(url):
-    """
-    Function to check if a URL is valid
-    """
-    import requests
-
-    try:
-        response = requests.get(url, timeout=5)
-        # Check if the status code is in the 2xx range (success)
-        return 200 <= response.status_code < 300
-    except requests.RequestException:
-        # If there is any exception, treat the URL as invalid
-        return False
-
-
-def extract_tld(url):
-    """
-    Parse top level domain from url
-    """
-    from urllib.parse import urlparse
-
-    domain = urlparse(url).netloc
-    domain_parts = domain.split(".")
-
-    if len(domain_parts) >= 2:
-        return ".".join(domain_parts[-2:])
-    return domain
-
-
-def classify_url(url):
-    """
-    Function to classify URL based on domain
-
-    :return str Url class string: 'videos', 'science', 'news', 'wiki',
-    'pictures', 'social' or 'other'
-    """
-    from modules.operators.vllm_remote import extract_tld
-
-    domain = extract_tld(url)
-    video_sites = [
-        "youtube.com",
-        "vimeo.com",
-        "dailymotion.com",
-        "twitch.tv",
-        "netflix.com",
-        "hulu.com",
-        "primevideo.com",
-        "disneyplus.com",
-        "hbomax.com",
-        "peacocktv.com",
-        "crunchyroll.com",
-        "funimation.com",
-        "veoh.com",
-        "bilibili.com",
-        "metacafe.com",
-        "odyssey.com",
-        "rumble.com",
-        "vudu.com",
-        "tiktok.com",
-        "viki.com",
-        "ard.de",
-        "zdf.de",
-        "3sat.de",
-        "ardmediathek.de",
-        "arte.tv",
-    ]
-    science_sites = [
-        "springer.com",
-        "nature.com",
-        "sciencedirect.com",
-        "wiley.com",
-        "nih.gov",
-        "plos.org",
-        "ieee.org",
-        "jstor.org",
-        "arxiv.org",
-        "researchgate.net",
-        "mdpi.com",
-        "biorxiv.org",
-        "sci-hub.se",
-        "doaj.org",
-        "frontiersin.org",
-        "hindawi.com",
-        "oup.com",
-        "cambridge.org",
-        "tandfonline.com",
-        "acs.org",
-    ]
-    news_sites = [
-        "cnn.com",
-        "bbc.co.uk",
-        "nytimes.com",
-        "theguardian.com",
-        "reuters.com",
-        "washingtonpost.com",
-        "forbes.com",
-        "foxnews.com",
-        "huffpost.com",
-        "latimes.com",
-        "aljazeera.com",
-        "ft.com",
-        "bloomberg.com",
-        "euronews.com",
-        "independent.co.uk",
-        "sky.com",
-        "thetimes.co.uk",
-        "deutsche-welle.com",
-        "theverge.com",
-        "vox.com",
-        "spiegel.de",
-        "faz.net",
-        "welt.de",
-        "taz.de",
-        "bild.de",
-        "zeit.de",
-        "handelsblatt.com",
-        "sueddeutsche.de" "tagesschau.de",
-        "tagesspiegel.de",
-        "br.de",
-    ]
-    image_sites = [
-        "flickr.com",
-        "imgur.com",
-        "shutterstock.com",
-        "unsplash.com",
-        "pexels.com",
-        "depositphotos.com",
-        "photobucket.com",
-        "500px.com",
-        "adobe.com",
-        "canva.com",
-        "stock.adobe.com",
-        "dreamstime.com",
-        "istockphoto.com",
-        "gettyimages.com",
-        "freepik.com",
-        "visualhunt.com",
-        "burst.shopify.com",
-        "pixabay.com",
-        "nature.com",
-    ]
-    social_sites = [
-        "instagram.com",
-        "facebook.com",
-        "twitter.com",
-        "pinterest.com",
-        "snapchat.com",
-        "tiktok.com",
-        "flickr.com",
-        "tumblr.com",
-        "vk.com",
-        "reddit.com",
-        "linkedin.com",
-        "weibo.com",
-        "foursquare.com",
-        "ello.co",
-        "dscout.com",
-        "imgur.com",
-        "500px.com",
-    ]
-    wiki_sites = [
-        "wikihow.com",
-        "wikimedia.org",
-        "wikia.com",
-        "infogalactic.com",
-        "citizendium.org",
-        "everipedia.org",
-        "scholarpedia.org",
-        "encarta.msn.com",
-        "brittanica.com",
-        "simple.wikipedia.org",
-        "wikipedia.org",
-        "starwiki.net",
-        "memory-alpha.org",
-        "fandom.com",
-        "openstreetmap.org",
-        "wikitravel.org",
-    ]
-
-    if domain in video_sites:
-        return "videos"
-    elif domain in science_sites:
-        return "science"
-    elif domain in news_sites:
-        return "news"
-    elif domain in wiki_sites:
-        return "wiki"
-    elif domain in image_sites:
-        return "pictures"
-    elif domain in social_sites:
-        return "social"
+    title = meta_data["title"]
+    course = meta_data["description"]["course"]
+    lang = "en"
+    context_sentence = prompt_base.get_context_sentence(context_data, lang=lang)
+    system_prompt = prompt_base.get_short_system_prompt(lang=lang)
+    user_prompt = ""
+    if mode == "ocr":
+        if fallback is True:
+            user_prompt = prompt_base.get_embedding_image_prompt_markdown()
+        else:
+            user_prompt = prompt_base.get_frame_extraction_prompt()
+        print(f"User prompt: {user_prompt}", flush=True)
     else:
-        return "other"
-
-
-def cleanup_text(text):
-    """
-    Cleanup text
-    """
-    if text.endswith("```"):
-        text = text.replace("```markdown", "")
-        text = text.rstrip("```")
-    text = text.replace("\n", " ")
-    text = text.replace("   ", " ")
-    text = text.replace("  ", " ")
-    return text.strip()
-
-
-def cleanup_markdown(text):
-    """
-    Cleanup markdown
-    """
-    if text.endswith("\n```"):
-        text = text.replace("```markdown\n", "")
-        text = text.rstrip("\n```")
-    elif text.endswith("```"):
-        text = text.replace("```markdown", "")
-        text = text.rstrip("```")
-    return text
-
-
-def gen_embeddings(tei_url, text):
-    """Get text embeddings"""
-    import time
-    import requests
-
-    print("Generate text embeddings")
-    start_time = time.time()
-    payload = {"inputs": text}
-    response = requests.post(tei_url, json=payload)
-    end_time = time.time()
-    el_time = end_time - start_time
-    print(f"Elapsed time: {el_time:.2f} seconds")
-    return response.json()[0]
-
-
-def do_prompt_single(client, model, prompt, img_input, max_tokens=8192):
-    """
-    Prompt vllm with single image
-    """
-    import time
-
-    start_time = time.time()
-    chat_completion_from_base64 = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_input}}],
-            }
-        ],
-        model=model,
-        max_tokens=max_tokens,
-        n=1,
-        timeout=120.0,
+        raise AirflowFailException(f"Error: llm mode '{mode}' not supported!")
+    return gen_messages(
+        system_prompt=system_prompt, user_prompt=user_prompt, context_sentence=context_sentence, img_input=img_input
     )
-    end_time = time.time()
-    el_time = end_time - start_time
-    print(f"Elapsed time: {el_time:.2f} seconds", flush=True)
-    if len(chat_completion_from_base64.choices) > 0:
-        return chat_completion_from_base64.choices[0].message.content
-    return None
 
 
 def prompt_vllm_remote(
@@ -338,7 +49,7 @@ def prompt_vllm_remote(
     download_meta_urn_key,
     upload_vllm_result_data,
     upload_vllm_result_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Creates a remote request to a VLLM using a specific mode.
@@ -354,7 +65,7 @@ def prompt_vllm_remote(
     :param str upload_vllm_result_data: XCOM data containing URN for the upload of the llm result to assetdb-temp
     :param str upload_vllm_result_urn_key: XCOM Data key to used to determine the URN for the upload of the llm result.
 
-    :param bool use_orchestrator: Orchestrator between client and llm: client <-> orchestrator <-> llm , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
     """
     import json
     import time
@@ -363,40 +74,50 @@ def prompt_vllm_remote(
     from copy import deepcopy
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
-    from modules.operators.vllm_remote import do_prompt_single, gen_embeddings, markdown_to_plain_text
-    from modules.operators.vllm_remote import cleanup_markdown, cleanup_text, find_frequent_words
-    from modules.operators.vllm_remote import find_all_urls, is_url_valid, classify_url
-    from openai import OpenAI
-    from langdetect import DetectorFactory
-    from langdetect import detect
+    from modules.operators.vllm_remote import create_vllm_messages
+    from llm.prompt_base import PromptBase
+    from llm.helpers import markdown_to_plain_text, detect_language
+    from llm.helpers import cleanup_markdown, cleanup_text, find_words_not_urls
+    from llm.helpers import find_all_urls, is_url_valid, classify_url
 
-    DetectorFactory.seed = 0
+    # llm model and engine configuration
+    prompt_base = PromptBase()
 
     # Get vllm remote config
-    config = get_connection_config("vllm_remote")
-    vllm_conn_type = config["conn_type"]
-    vllm_schema = config["schema"]
-    vllm_host = config["host"]
-    vllm_port = str(config["port"])
+    vllm_remote_config = get_connection_config("vllm_remote")
+    vllm_remote_config["vllm_task"] = llm_configs["vllm_task"]
+    vllm_remote_config["vllm_model_id"] = llm_configs["vllm_model_id"]
 
-    # Get text embedding service remote config
-    tei_config = get_connection_config("text_embedding_remote")
-    tei_conn_type = tei_config["conn_type"]
-    tei_schema = tei_config["schema"]
-    tei_host = tei_config["host"]
-    tei_port = str(tei_config["port"])
+    # Get embeddings remote config
+    embedding_remote_config = get_connection_config("embeddings_remote")
+    embedding_remote_config["embedding_task"] = llm_configs["embedding_task"]
+    embedding_remote_config["embedding_model_id"] = llm_configs["embedding_model_id"]
 
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
 
-    # Configure connector_provider and connect assetdb_temp_connector
-    connector_provider.configure({"assetdb_temp": assetdb_temp_config})
+    # Configure connector_provider
+    connector_provider.configure(
+        {
+            "assetdb_temp": assetdb_temp_config,
+            "vllm_remote_config": vllm_remote_config,
+            "embedding_remote_config": embedding_remote_config,
+        }
+    )
     assetdb_temp_connector = connector_provider.get_assetdbtemp_connector()
     assetdb_temp_connector.connect()
+
+    # Connect to vllm
+    vllm_connector = connector_provider.get_vllm_connector()
+    vllm_connector.connect()
+
+    # Connect to embeddings
+    embedding_connector = connector_provider.get_embedding_connector()
+    embedding_connector.connect()
 
     # Load metadata File
     metadata_urn = get_data_from_xcom(download_meta_data, [download_meta_urn_key])
@@ -422,35 +143,10 @@ def prompt_vllm_remote(
     entry_meta_data["lecturer"] = meta_data["description"]["lecturer"]
     entry_meta_data["semester"] = meta_data["description"]["semester"]
 
-    url_base = vllm_schema + "://" + vllm_host + ":" + vllm_port
-    if use_orchestrator is True:
-        url_demand = url_base + "/demand_vllm_service"
-        url_info = url_base + "/info"
-        # TODO: call demand and check availability with info until LLM is available
-        url = url_base + "/vllm_service/v1"
-    else:
-        url = url_base + "/v1"
-
-    tei_url_base = tei_schema + "://" + tei_host + ":" + tei_port
-    if use_orchestrator is True:
-        tei_url_demand = tei_url_base + "/demand_text_embedding_service"  # Todo: verify url defined by orchestrator
-        tei_url_info = tei_url_base + "/info"
-        # TODO: call demand and check availability with info until TEI service is available
-        tei_url = tei_url_base + "/text_embedding_service/embed"
-    else:
-        tei_url = tei_url_base + "/embed"
-
-    client = OpenAI(
-        # defaults to os.environ.get("OPENAI_API_KEY")
-        api_key="EMPTY",
-        base_url=url,
-    )
-    model = "mistralai/Pixtral-12B-2409"
+    model = llm_configs["vllm_model_id"]  # "mistralai/Pixtral-12B-2409"
+    print(f"Model: {model}")
 
     if mode == "ocr":
-        print(f"OCR using VLLM: {model}")
-        extract_prompt = "Extract all text including all special terms, headings, footer, and captions without translation or interpretation in markdown format."
-        max_tokens = 8192
         # Load prepared image vector json files
         image_base_urn = get_data_from_xcom(images_data, [images_data_key])
         images_slides_data_files = assetdb_temp_connector.list_objects(image_base_urn)
@@ -468,6 +164,7 @@ def prompt_vllm_remote(
         full_text = ""
         last_slide_filename = ""
         last_slide_page = 0
+        prev_language = meta_data["language"]
         for name_with_fext in sorted_slides_data_files:
             download_urn = image_base_urn + "/" + name_with_fext
             img_vector_data = assetdb_temp_connector.get_object(download_urn)
@@ -479,33 +176,46 @@ def prompt_vllm_remote(
             slide_page_number = img_vector_json["page_number"]
             last_slide_page = slide_page_number
             print(f"File: {slide_filename}, Page: {slide_page_number}", flush=True)
-            result_ex = do_prompt_single(client, model, extract_prompt, img_vector_json["data"], max_tokens)
+            messages = create_vllm_messages(
+                prompt_base, mode, context_data=None, meta_data=meta_data, img_input=img_vector_json["data"]
+            )
+            result_ex = vllm_connector.query_vllm(messages=messages)
             while result_ex is None:
-                result_ex = do_prompt_single(client, model, extract_prompt, img_vector_json["data"], max_tokens)
+                result_ex = vllm_connector.query_vllm(messages=messages)
             markdown_text = cleanup_markdown(result_ex.strip())
             clean_text = cleanup_text(markdown_to_plain_text(markdown_text))
             print(f"Text: {clean_text}", flush=True)
-            fq_words = find_frequent_words(clean_text)
+            fq_words = find_words_not_urls(clean_text)
             word_counts = Counter(fq_words)
             frequent_words = {word: count for word, count in word_counts.items() if count > 16}
             if len(frequent_words) > 0:
-                result_ex = do_prompt_single(client, model, extract_prompt, img_vector_json["data"], max_tokens)
+                result_ex = vllm_connector.query_vllm(messages=messages)
                 while result_ex is None:
-                    result_ex = do_prompt_single(client, model, extract_prompt, img_vector_json["data"], max_tokens)
+                    result_ex = vllm_connector.query_vllm(messages=messages)
                 markdown_text = result_ex.strip()
                 clean_text = cleanup_text(markdown_to_plain_text(markdown_text))
                 print(f"Text (2nd time): {clean_text}", flush=True)
-                fq_words = find_frequent_words(clean_text)
+                fq_words = find_words_not_urls(clean_text)
             print(f"Words: {fq_words}", flush=True)
+
             # Gen embeddings
-            embeddings_data_pdf = gen_embeddings(tei_url, markdown_text)
-            print("Text embedded")
-            urls = find_all_urls(clean_text)
-            print(f"Urls: {urls}")
-            valid_urls = [url for url in urls if is_url_valid(url)]
-            print(f"Valid urls: {valid_urls}")
+            embeddings_data_text = embedding_connector.gen_embedding_for_text(markdown_text)
+            print("Text embedded", flush=True)
             img_vector_json["chunk_text"] = markdown_text
-            img_vector_json["embedding"] = embeddings_data_pdf
+            is_multimodal = embedding_connector.is_multimodal()
+            if is_multimodal is True:
+                embeddings_data_image = embedding_connector.gen_embedding_for_image(img_vector_json["data"])
+                print("Image embedded", flush=True)
+                # This will be stored in vector db
+                img_vector_json["embedding"] = embeddings_data_image
+            else:
+                # This will be stored in vector db
+                img_vector_json["embedding"] = embeddings_data_text
+            print("Detecting urls", flush=True)
+            urls = find_all_urls(clean_text)
+            print(f"Urls: {urls}", flush=True)
+            valid_urls = [url for url in urls if is_url_valid(url)]
+            print(f"Valid urls: {valid_urls}", flush=True)
             # TODO: update existing file
             stream_bytes = BytesIO(json.dumps(img_vector_json).encode("utf-8"))
             mime_type = HansType.get_mime_type(HansType.SEARCH_SLIDE_DATA_VECTOR)
@@ -524,6 +234,9 @@ def prompt_vllm_remote(
             page_meta_file_data["text"] = clean_text
             page_meta_file_data["words"] = fq_words
             page_meta_file_data["urls"] = valid_urls
+            page_meta_file_data["embedding_text"] = embeddings_data_text
+            if is_multimodal is True:
+                page_meta_file_data["embedding_image"] = embeddings_data_image
             page_meta_file_data["urls_by_class"] = {}
             for url in valid_urls:
                 key = classify_url(url)
@@ -531,7 +244,11 @@ def prompt_vllm_remote(
                     page_meta_file_data["urls_by_class"][key] = []
                 if url not in page_meta_file_data["urls_by_class"][key]:
                     page_meta_file_data["urls_by_class"][key].append(url)
-            page_meta_file_data["language"] = detect(clean_text.strip())
+            if len(clean_text.strip()) > 0:
+                page_meta_file_data["language"] = detect_language(clean_text)
+                prev_language = page_meta_file_data["language"]
+            else:
+                page_meta_file_data["language"] = prev_language
             full_text += clean_text + " "
             all_valid_urls += [item for item in valid_urls if item not in all_valid_urls]
             all_words += [item for item in fq_words if item not in all_words]
@@ -561,7 +278,10 @@ def prompt_vllm_remote(
             if url not in page_meta_file_data["urls_by_class"][key]:
                 page_meta_file_data["urls_by_class"][key].append(url)
         page_meta_file_data["words"] = all_words
-        page_meta_file_data["language"] = detect(full_text.strip())
+        if len(full_text.strip()) > 0:
+            page_meta_file_data["language"] = detect_language(full_text)
+        else:
+            page_meta_file_data["language"] = prev_language
         page_meta_file_data["text"] = full_text.strip()
         stream_bytes = BytesIO(json.dumps(page_meta_file_data).encode("utf-8"))
         mime_type = HansType.get_mime_type(HansType.SLIDES_IMAGES_META)
@@ -588,7 +308,7 @@ def op_vllm_remote_prompt(
     download_meta_urn_key,
     upload_vllm_result_data,
     upload_vllm_result_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Provides PythonVirtualenvOperator to request a VLLM using a specific prompt template mode.
@@ -608,14 +328,14 @@ def op_vllm_remote_prompt(
     :param str upload_vllm_result_data: XCOM data containing URN for the upload of the llm result to assetdb-temp
     :param str upload_vllm_result_urn_key: XCOM Data key to used to determine the URN for the upload of the llm result.
 
-    :param bool use_orchestrator: Orchestrator between client and llm: client <-> orchestrator <-> llm , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
 
     :return: PythonVirtualenvOperator Operator to create opensearch document on the assetdb-temp storage.
     """
     from modules.operators.xcom import gen_task_id
 
     return PythonVirtualenvOperator(
-        task_id=gen_task_id(dag_id, "op_llm_remote_prompt", task_id_suffix),
+        task_id=gen_task_id(dag_id, "op_vllm_remote_prompt", task_id_suffix),
         python_callable=prompt_vllm_remote,
         op_args=[
             mode,
@@ -625,16 +345,10 @@ def op_vllm_remote_prompt(
             download_meta_urn_key,
             upload_vllm_result_data,
             upload_vllm_result_urn_key,
-            use_orchestrator,
+            llm_configs,
         ],
-        requirements=[
-            PIP_REQUIREMENT_MINIO,
-            "eval-type-backport",
-            "openai==1.47.0",
-            "markdown",
-            "beautifulsoup4",
-            "langdetect",
-        ],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

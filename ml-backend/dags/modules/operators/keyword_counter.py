@@ -5,9 +5,6 @@ from typing import Optional, Union
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 def run_keyword_counter(keywords: list[str], transcript: str, min_count: int = 2) -> dict[str, int]:
     keyword_2_count = {}
     for keyword in keywords:
@@ -34,7 +31,7 @@ def extend_keywords_with_counts(
     import json
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
@@ -144,7 +141,7 @@ def op_keyword_counter(
             keyword_data,
             keyword_data_key,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )

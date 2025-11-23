@@ -16,10 +16,6 @@ from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 # CREATE URL
 
 
@@ -35,8 +31,8 @@ def create_url(hans_type, urn, mode):
     :return: str JSON for XCOM containing the generated url with the hans_type as key.
     """
     import json
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.minio_connector import MinioConnectorFetchUrlMode
+    from connectors.connector_provider import connector_provider
+    from connectors.minio_connector import MinioConnectorFetchUrlMode
     from modules.operators.connections import get_assetdb_temp_config
     from airflow.exceptions import AirflowFailException
 
@@ -105,14 +101,19 @@ def op_create_url(dag, dag_id, task_id_suffix, hans_type, database, bucket, file
 
     :return: PythonVirtualenvOperator Operator to create a url on a specific minio storage system.
     """
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.storage_connector import StorageConnector
     from modules.operators.xcom import gen_task_id
 
     return PythonVirtualenvOperator(
         task_id=gen_task_id(dag_id, "op_create_url", task_id_suffix),
         python_callable=create_url,
         op_args=[hans_type, StorageConnector.create_urn(database, bucket, file_name, file_extension), mode],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -141,7 +142,12 @@ def op_create_url_by_urn(dag, dag_id, task_id_suffix, hans_type, urn, mode):
         task_id=gen_task_id(dag_id, "op_create_url_by_urn", task_id_suffix),
         python_callable=create_url,
         op_args=[hans_type, urn, mode],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -171,7 +177,12 @@ def op_create_url_by_xcom(dag, dag_id, task_id_suffix, hans_type, xcom_data, xco
         task_id=gen_task_id(dag_id, "op_create_url_by_xcom", task_id_suffix),
         python_callable=create_url_xcom,
         op_args=[hans_type, xcom_data, xcom_data_urn_key, mode],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -196,7 +207,7 @@ def op_create_url_on_assetdbtemp(dag, dag_id, task_id_suffix, hans_type, file_na
     on assetdb-temp minio service.
     """
     from modules.operators.connections import get_assetdb_temp_config
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.storage_connector import StorageConnector
     from modules.operators.xcom import gen_task_id
 
     assetdb_temp_config = get_assetdb_temp_config()
@@ -208,7 +219,12 @@ def op_create_url_on_assetdbtemp(dag, dag_id, task_id_suffix, hans_type, file_na
         task_id=gen_task_id(dag_id, "op_create_url_on_assetdbtemp", task_id_suffix),
         python_callable=create_url,
         op_args=[hans_type, urn, mode],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -230,7 +246,7 @@ def create_new_urn(hans_type, database, bucket, file_extension=""):
     """
     import json
     from uuid import uuid4
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.storage_connector import StorageConnector
 
     urn = StorageConnector.create_urn(database, bucket, str(uuid4()), file_extension)
     # implicit XCOM push
@@ -259,7 +275,12 @@ def op_create_new_urn(dag, dag_id, task_id_suffix, hans_type, database, bucket, 
         task_id=gen_task_id(dag_id, "op_create_new_urn", task_id_suffix),
         python_callable=create_new_urn,
         op_args=[hans_type, database, bucket, file_extension],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -290,7 +311,12 @@ def op_create_new_urn_on_assetdbtemp(dag, dag_id, task_id_suffix, hans_type, fil
         task_id=gen_task_id(dag_id, "op_create_new_urn_on_assetdbtemp", task_id_suffix),
         python_callable=create_new_urn,
         op_args=[hans_type, temp_database, temp_bucket, file_extension],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "datetime"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "datetime",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -309,7 +335,7 @@ def cleanup_assetdbtemp_bucket(bucketid):
     """
     import json
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config
 
     # Get assetdb-temp config from airflow connections
@@ -347,7 +373,7 @@ def op_cleanup_assetdbtemp_archive(dag, dag_id, task_id_suffix):
         task_id=gen_task_id(dag_id, "op_cleanup_assetdbtemp_archive", task_id_suffix),
         python_callable=cleanup_assetdbtemp_bucket,
         op_args=["archive-bucket"],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )
@@ -369,7 +395,7 @@ def op_cleanup_assetdbtemp_assets_temp(dag, dag_id, task_id_suffix):
         task_id=gen_task_id(dag_id, "op_cleanup_assetdbtemp_assets_temp", task_id_suffix),
         python_callable=cleanup_assetdbtemp_bucket,
         op_args=["bucket"],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )

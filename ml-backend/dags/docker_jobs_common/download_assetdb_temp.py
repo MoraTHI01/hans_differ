@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 import os
-from modules.connectors.connector_provider import connector_provider
+from connectors.connector_provider import connector_provider
 
 parser = argparse.ArgumentParser(description="Helper to download multiple objects from assetdb-temp")
 parser.add_argument("config", type=str, help="Configuration to establish minio connection")

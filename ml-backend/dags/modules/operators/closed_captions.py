@@ -17,10 +17,6 @@ from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 def create_closed_captions(transcript_data, transcript_data_key, dash_data, dash_urn_key):
     """
     Creates an closed captions in WebVTT format and appends them to
@@ -34,7 +30,7 @@ def create_closed_captions(transcript_data, transcript_data_key, dash_data, dash
     import json
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
@@ -74,7 +70,8 @@ def op_create_closed_captions(
         task_id=gen_task_id(dag_id, "op_create_closed_captions", task_id_suffix),
         python_callable=create_closed_captions,
         op_args=[transcript_data, transcript_data_key, dash_data, dash_urn_key],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "nltk"],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport", "nltk"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
