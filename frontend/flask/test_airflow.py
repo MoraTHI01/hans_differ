@@ -10,10 +10,10 @@ __version__ = "1.0.0"
 __status__ = "Draft"
 
 
-from api.modules.config import get_ml_backend_host, get_ml_backend_port
-from api.modules.config import get_ml_backend_user, get_ml_backend_password
-from api.modules.config import get_ml_backend_postfix
-from api.modules.connectors.airflow_connector import AirflowConnector
+from connectors.config import get_ml_backend_host, get_ml_backend_port
+from connectors.config import get_ml_backend_user, get_ml_backend_password
+from connectors.config import get_ml_backend_postfix
+from connectors.airflow_connector import AirflowConnector
 
 
 airflow_host = get_ml_backend_host()

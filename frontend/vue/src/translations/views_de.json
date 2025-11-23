@@ -4,6 +4,10 @@
     "searchplaceholder": "Ankündigungen Verwalten",
     "menutext": "Ankündigung hochladen"
   },
+  "ChannelView": {
+    "notauthorizedtitle": "Nicht authorisiert!",
+    "notauthorizedtext": "Du hast keinen Zugriff auf diesen Kanal."
+  },
   "ChannelsView": {
     "searchplaceholder": "Suche Kanäle",
     "menutext": "Alle Kanäle"
@@ -65,6 +69,20 @@
   "SearchResultsView": {
     "searchplaceholder": "Suche Medien"
   },
+  "StatisticsView": {
+    "searchplaceholder": "Suche Medien",
+    "menutext": "Statistiken",
+    "count_channels": "Anzahl Kanäle",
+    "count_media": "Anzahl Medien",
+    "count_media_published": "Anzahl veröffentlichter Medien",
+    "count_media_listed": "Anzahl gelisteter Medien",
+    "media_published": "Veröffentlichte Medien",
+    "media_listed": "Gelistete Medien",
+    "media_unpublished": "Unveröffentlichte Medien",
+    "global": "Global",
+    "institute": "Institut",
+    "account": "Dieser Account"
+  },
   "SurveysView": {
     "searchplaceholder": "Umfragen Verwalten",
     "menutext": "Umfrage hochladen"
@@ -77,6 +95,9 @@
     "summary": "Volle Zusammenfassung",
     "editInDe": "Bearbeiten in Deutsch",
     "editInEn": "Bearbeiten in Englisch"
+  },
+  "UploadChannelView": {
+    "menutext": "Ihre Medien"
   },
   "UploadOverviewView": {
     "menutext": "Ihre Medien"

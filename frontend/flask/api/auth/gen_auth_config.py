@@ -19,7 +19,7 @@ from uuid import uuid4
 
 
 PASSWORD_LIST = []
-YEAR_SHORT = "24"
+YEAR_SHORT = "25"
 
 
 def read_input_value(valuename=""):
@@ -547,6 +547,10 @@ def add_default_static_thn(static_auth_config, lang):
 
     static_auth_config = add_default_static_student_and_lecturer(
         static_auth_config, "IN", org, org_domain, lang, "Informatik", "DABA"  # Datenbanken
+    )
+
+    static_auth_config = add_default_static_student_and_lecturer(
+        static_auth_config, "IN", org, org_domain, lang, "Informatik", "NLP"  # Natural Language Processing
     )
 
     static_auth_config = add_default_static_student_and_lecturer(
@@ -1518,6 +1522,11 @@ def restore_default_oidc_config(oidc_auth_filepath):
                             "acronym": "<YOUR_FACULTY_ACRONYM>",
                         }
                     ],
+                },
+                "restricted_permission_provider": {
+                    "type": "moodle",
+                    "url": "http://host.docker.internal:8070/webservice/rest/server.php",
+                    "wstoken": "",
                 },
             }
         },

@@ -77,6 +77,8 @@ class OidcAuthProvider(AuthProvider):
                          for details.
     - ``shibboleth``:    Optional a dict of params with static meta data of the used
                          shibboleth idp in background of a keycloak service
+    - ``restricted_permission_provider``:    Optional a dict of params with configuration to a e-learning platform api endpoint
+                         for checking access restrictions
     """
 
     def __init__(self, *args, **kwargs):
@@ -89,6 +91,7 @@ class OidcAuthProvider(AuthProvider):
         self.server_api_endpoint = self.settings.get("server_api_endpoint", "http://localhost:80/api")
         self.server_internal_api = self.settings.get("server_internal_api", "http://hans-frontend-web:5001")
         self.shibboleth_meta = self.settings.get("shibboleth", {})
+        self.restricted_permission_provider = self.settings.get("restricted_permission_provider", {})
         if self.use_id_token is None:
             # default to using the id token when using the openid scope (oidc)
             client_kwargs = self.authlib_settings.get("client_kwargs", {})
@@ -106,6 +109,10 @@ class OidcAuthProvider(AuthProvider):
     @property
     def shibboleth_meta_data(self):
         return self.shibboleth_meta
+
+    @property
+    def get_restricted_permission_provider(self):
+        return self.restricted_permission_provider
 
     def _get_redirect_uri(self):
         return url_for(self.authorized_endpoint, _external=True)
@@ -199,6 +206,7 @@ class OidcIdentityProvider(IdentityProvider):
         self.id_data = {}
         self.do_map = False
         self.shibboleth_meta = self.settings.get("shibboleth", {})
+        self.restricted_permission_provider = self.settings.get("restricted_permission_provider", {})
         if "mapping" in self.settings:
             mapping_dict = self.settings["mapping"]
             if mapping_dict is not None and len(mapping_dict) > 0:

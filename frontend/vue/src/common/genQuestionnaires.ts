@@ -1,6 +1,18 @@
 import {useMessageStore} from "@/stores/message";
 import {LoggerService} from "./loggerService";
+import {apiClient} from "@/common/apiClient";
 import type {Message, MessageContent, TextContent} from "@/data/Message";
+
+export interface McqRequest {
+  uuid: string;
+  language: string;
+  difficulty: string;
+  context: string;
+  contextUuid: string;
+  avoid: boolean;
+  avoidQuestions: string;
+  reasoning: boolean;
+}
 
 /*
  * QuestionnaireGenerator
@@ -22,47 +34,32 @@ export class QuestionnaireGenerator {
     language: string,
     prompt_context: string | undefined,
     prompt_context_uuid: string | undefined,
+    do_reasoning: boolean = false,
   ): Promise<object> {
-    let prompt_en = `Create a single ${difficulty} difficult multiple choice question (max. 240 chars) with 4 short answers (max. 120 chars) with unique index from 0 to 3. Provide the correct answers associated index and a short explanation (max. 512 chars) as valid JSON without any newlines.`;
-    if (avoid && avoid.length > 0) {
-      prompt_en += ` Avoid the following already generated questions: '${avoid.join("\n")}'.`;
-    }
-    let prompt_de = `Erstelle eine einzelne Multiple-Choice-Frage mit Schwierigkeitsgrad ${difficulty} (max. 240 Zeichen) mit 4 kurzen Antworten (max. 120 Zeichen) mit eindeutigen Indexen von 0 bis 3. Gib die richtigen Antworten mit zugehörigem Index und einer kurzen Erläuterung (max. 512 Zeichen) als gültiges JSON ohne Zeilenumbrüche zurück.`;
-    if (avoid && avoid.length > 0) {
-      prompt_de += ` Vermeide die folgenden bereits generierten Fragen: '${avoid.join("\n")}'.`;
-    }
-
-    let prompt = prompt_en;
-    if (language === "en") {
-      prompt = prompt_en;
-    } else if (language === "de") {
-      prompt = prompt_de;
-    }
-    const msgTextItem = {
-      type: "text",
-      text: prompt,
-    } as TextContent;
-    const item = {
+    this.myLogger.log("sendMultipleChoiceQuestionRequest");
+    const params = {
+      uuid: prompt_context_uuid,
       language: language,
-      content: [msgTextItem],
-    } as MessageContent;
-    const requestMessage = {
-      content: [item],
-      isUser: true,
+      difficulty: difficulty,
       context: prompt_context,
       contextUuid: prompt_context_uuid,
-      useContext: true,
-      useContextAndCite: false,
-      useTranslate: false,
-      history: [],
-      stream: false,
-    } as Message;
-    this.myLogger.log("sendMultipleChoiceQuestionRequest");
-    this.myLogger.log(requestMessage);
-    const responseMessage = await useMessageStore().transferMessage(
-      "/sendMultipleChoiceQuestionRequest",
-      requestMessage,
-    );
+      avoid: avoid && avoid.length > 0,
+      avoidQuestions: avoid?.join("\n"),
+      reasoning: do_reasoning,
+    } as McqRequest;
+    const {data} = await apiClient.post("/sendMultipleChoiceQuestionRequest", params, {
+      headers: {
+        "Content-type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      // Adjust timeout as needed, currently 600 seconds, aka 5 min for questions
+      timeout: 600000,
+    });
+    this.myLogger.log(data);
+    let responseMessage = undefined;
+    if ("data" in data && "result" in data.data[0]) {
+      responseMessage = data.data[0].result[0] as Message;
+    }
     if (responseMessage === undefined) {
       return;
     }

@@ -28,7 +28,7 @@
           <div class="modal-body">
             <!-- Bootstrap Tabs for switching between contextList and contextListSlides -->
             <ul class="nav nav-tabs" :id="props.indexSuffix + '_ContextTab_' + props.index" role="tablist">
-              <li class="nav-item" role="presentation">
+              <li v-if="!props.channelmode" class="nav-item" role="presentation">
                 <button
                   class="nav-link active"
                   :id="props.indexSuffix + '_ContextTranscriptTab_' + props.index"
@@ -42,7 +42,7 @@
                   {{ t("ChatContextWindow.transcript") }}
                 </button>
               </li>
-              <li class="nav-item" role="presentation">
+              <li v-if="!props.channelmode" class="nav-item" role="presentation">
                 <button
                   class="nav-link"
                   :id="props.indexSuffix + '_ContextSlidesTab_' + props.index"
@@ -56,7 +56,7 @@
                   {{ t("ChatContextWindow.slides") }}
                 </button>
               </li>
-              <li class="nav-item" role="presentation">
+              <li v-if="!props.channelmode" class="nav-item" role="presentation">
                 <button
                   class="nav-link"
                   :id="props.indexSuffix + '_ContextSnapshotsTab_' + props.index"
@@ -70,11 +70,27 @@
                   {{ t("ChatContextWindow.snapshots") }}
                 </button>
               </li>
+              <li v-if="props.channelmode" class="nav-item" role="presentation">
+                <button
+                  class="nav-link active"
+                  :id="props.indexSuffix + '_ContextMediaSummariesTab_' + props.index"
+                  data-bs-toggle="tab"
+                  :data-bs-target="'#' + props.indexSuffix + '_ContextMediaSummariesContent_' + props.index"
+                  type="button"
+                  role="tab"
+                  :aria-controls="props.indexSuffix + '_ContextMediaSummariesContent_' + props.index"
+                  aria-selected="true"
+                >
+                  {{ t("ChatContextWindow.mediasummaries") }}
+                </button>
+              </li>
+              <!-- TODO: documents for channelmode here -->
             </ul>
             <!-- Tab Content -->
             <div class="tab-content mt-3" :id="props.indexSuffix + '_ContextTabContent_' + props.index">
               <!-- First Tab: Context List -->
               <div
+                v-if="!props.channelmode"
                 class="tab-pane fade show active"
                 :id="props.indexSuffix + '_ContextTranscriptContent_' + props.index"
                 role="tabpanel"
@@ -104,6 +120,7 @@
               </div>
               <!-- Second Tab: Slides -->
               <div
+                v-if="!props.channelmode"
                 class="tab-pane fade"
                 :id="props.indexSuffix + '_ContextSlidesContent_' + props.index"
                 role="tabpanel"
@@ -131,8 +148,9 @@
                   </ol>
                 </div>
               </div>
-              <!-- Third Tab: Slides -->
+              <!-- Third Tab: Snapshots -->
               <div
+                v-if="!props.channelmode"
                 class="tab-pane fade"
                 :id="props.indexSuffix + '_ContextSnapshotsContent_' + props.index"
                 role="tabpanel"
@@ -160,6 +178,36 @@
                   </ol>
                 </div>
               </div>
+              <!-- First Tab: Media summaries -->
+              <div
+                v-if="props.channelmode"
+                class="tab-pane fade show active"
+                :id="props.indexSuffix + '_ContextMediaSummariesContent_' + props.index"
+                role="tabpanel"
+                :aria-labelledby="props.indexSuffix + '_ContextMediaSummariesTab_' + props.index"
+              >
+                <div v-if="contextList.size > 0">
+                  <ol class="list-group list-group-flush">
+                    <template v-for="(item, index) in contextList" :key="index">
+                      <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="ms-2 me-auto">
+                          <div class="fw-bold">{{ item[0] }}</div>
+                          <p>{{ item[1] }}</p>
+                        </div>
+                      </li>
+                    </template>
+                  </ol>
+                </div>
+                <div v-else>
+                  <ol class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div class="ms-2 me-auto">
+                        {{ t("ChatContextWindow.mediaContextEmpty") }}
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -182,6 +230,7 @@ import {LoggerService} from "@/common/loggerService";
 import {useMediaStore} from "@/stores/media";
 import {apiClient} from "@/common/apiClient";
 import {useMessageStore} from "@/stores/message";
+import type {Summary, SummaryItem} from "@/data/Summary";
 
 const loggerService = new LoggerService();
 const {t, locale} = useI18n({useScope: "global"});
@@ -194,19 +243,23 @@ const props = defineProps<{
   cssClass: string;
   index: number;
   indexSuffix: string;
-  videoUuid: string;
+  itemUuid: string;
+  channelmode: boolean;
+  mediaContextUuids: string[];
+  documentContextUuids: string[];
 }>();
 
 const mediaStore = useMediaStore();
 const contextList = ref(new Map<string, string>());
 const contextListSlides = ref(new Map<string, string>());
 const contextListSnapshots = ref(new Map<string, string>());
+const contextListDocuments = ref(new Map<string, string>());
 
 const parseContext = async () => {
   loggerService.log("ContextWindow:parseContext");
   const currContextArr = props.context.split("\\n");
   loggerService.log(currContextArr);
-  currContextArr.forEach((contextItem) => {
+  currContextArr.forEach(async (contextItem) => {
     if (contextItem !== "") {
       const currContextItem = contextItem.trim();
       loggerService.log(currContextItem);
@@ -228,18 +281,44 @@ const parseContext = async () => {
           const hoverContextTextEnOrig = contextArr[1].trim();
           let hoverContextText = hoverContextTextEnOrig;
           if (citationIndex < 100) {
-            // Cite transcript
-            if (locale.value === "de") {
-              const intervalEn = mediaStore.getIntervalFromCurrentTranscriptText("en", hoverContextTextEnOrig);
-              hoverContextText = mediaStore.getCurrentTranscriptTextInInterval("de", intervalEn);
-            }
-            if (!contextList.value.has(citation)) {
-              contextList.value.set(citation, hoverContextText);
+            if (props.channelmode === false) {
+              // Cite transcript
+              if (locale.value === "de") {
+                const intervalEn = mediaStore.getIntervalFromCurrentTranscriptText("en", hoverContextTextEnOrig);
+                hoverContextText = mediaStore.getCurrentTranscriptTextInInterval("de", intervalEn);
+              }
+              if (!contextList.value.has(citation)) {
+                contextList.value.set(citation, hoverContextText);
+              }
+            } else {
+              // Media summaries
+              const media_item_uuid = props.mediaContextUuids[citationIndex];
+              const summaryResult = await mediaStore.loadSummary(media_item_uuid, true);
+              const title = mediaStore.getMediaItemByUuid(media_item_uuid).title;
+              //const summaryResult = await mediaStore.loadSummary(media_item_uuid, true);
+              for (const item in summaryResult.data) {
+                const summaryData = summaryResult.data[item] as Summary;
+                if (summaryData.language === locale.value) {
+                  for (const result in summaryData.result) {
+                    const summaryItem = summaryData.result[result] as SummaryItem;
+                    const summary_text = summaryItem.summary
+                      ?.replace("\\", "")
+                      .replace(". n * ", ". ")
+                      .replace("The text summary is as follows: ", "")
+                      .replace("Der Text fasst folgendermaßen zusammen: ", "")
+                      .replace(" _ ", "_");
+                    const result_text = title + ": " + summary_text;
+                    if (!contextList.value.has(citation)) {
+                      contextList.value.set(citation, result_text);
+                    }
+                  }
+                }
+              }
             }
           } else if (citationIndex > 99 && citationIndex < 999) {
             // Cite slides
             const slide_number = (citationIndex - 100).toString();
-            const uri = mediaStore.getSlidesImagesFolderUrnByUuid(props.videoUuid) + "/" + slide_number + ".png";
+            const uri = mediaStore.getSlidesImagesFolderUrnByUuid(props.itemUuid) + "/" + slide_number + ".png";
             loggerService.log(`ChatContextWindow:SlideContextUrnFirstPass: ${uri}`);
             if (!contextListSlides.value.has(slide_number)) {
               contextListSlides.value.set(slide_number, uri);

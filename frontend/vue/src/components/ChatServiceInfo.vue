@@ -49,6 +49,22 @@
                     </button>
                   </li>
                 </div>
+                <div v-else-if="item.type === 'rllm'">
+                  <li class="nav-item" role="presentation">
+                    <button
+                      class="nav-link"
+                      id="rllm-info-tab"
+                      data-bs-toggle="tab"
+                      data-bs-target="#rllm-info"
+                      type="button"
+                      role="tab"
+                      aria-controls="rllm-info"
+                      aria-selected="false"
+                    >
+                      {{ t("ChatServiceInfo.rllmService") }}
+                    </button>
+                  </li>
+                </div>
                 <div v-else-if="item.type === 'embedding'">
                   <li class="nav-item" role="presentation">
                     <button
@@ -110,6 +126,22 @@
                 >
                   <ModelInfo
                     id="vllm-info-model"
+                    :modelId="item.info.model_id"
+                    :modelSha="item.info.model_sha"
+                    :modelDtype="item.info.model_dtype"
+                    :modelMaxTotalTokens="item.info.max_total_tokens"
+                    :modelMaxNewTokens="item.info.max_new_tokens"
+                  />
+                </div>
+                <div
+                  v-else-if="item.type === 'rllm'"
+                  class="tab-pane fade"
+                  id="rllm-info"
+                  role="tabpanel"
+                  aria-labelledby="rllm-info-tab"
+                >
+                  <ModelInfo
+                    id="rllm-info-model"
                     :modelId="item.info.model_id"
                     :modelSha="item.info.model_sha"
                     :modelDtype="item.info.model_dtype"

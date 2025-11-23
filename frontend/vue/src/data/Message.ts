@@ -21,6 +21,8 @@ export interface MessageHistory {
   isUser: boolean;
   language: string;
   content: ContentItem[];
+  mediaContextUuids: string[];
+  documentContextUuids: string[];
 }
 
 export interface Message {
@@ -30,6 +32,7 @@ export interface Message {
   contextUuid: string;
   useContext: boolean;
   useContextAndCite: boolean;
+  useChannelContext: boolean;
   useTranslate: boolean;
   history: MessageHistory[];
   actAsTutor: boolean;
@@ -38,4 +41,7 @@ export interface Message {
   useVisionSnapshot: boolean;
   snapshot: string;
   stream: boolean;
+  reasoning: boolean;
+  mediaContextUuids: string[];
+  documentContextUuids: string[];
 }

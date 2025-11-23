@@ -1,12 +1,15 @@
 <template>
   <div v-if="messageStore.getServicesAvailable">
-    <div v-if="viewportWidth > 786">
+    <div v-if="viewportWidth > 786 || props.singleview === true">
       <div class="card-body p-1 chat-container container" @mouseenter="handleFocus" ref="chatComponent">
-        <div class="row-6 chat-messages-container">
-          <ChatMessages :video="props.video" />
+        <div
+          class="row-6 chat-messages-container chat-messages-container-outer"
+          :style="props.channelmode === true ? 'height: 50vh;' : ''"
+        >
+          <ChatMessages :uuid="props.uuid" :channelmode="props.channelmode" />
         </div>
-        <div class="card-body p-1">
-          <ChatInput :video="props.video" />
+        <div class="card-body p-1 chat-input-container-outer">
+          <ChatInput :uuid="props.uuid" :language="props.language" :channelmode="props.channelmode" />
         </div>
       </div>
     </div>
@@ -37,10 +40,10 @@
               ref="chatComponent"
             >
               <div class="row-6 chat-messages-container">
-                <ChatMessages :video="props.video" />
+                <ChatMessages :uuid="props.uuid" :channelmode="props.channelmode" />
               </div>
               <div class="card-body p-1">
-                <ChatInput :video="props.video" />
+                <ChatInput :uuid="props.uuid" :language="props.language" :channelmode="props.channelmode" />
               </div>
             </div>
             <div class="modal-footer">
@@ -67,13 +70,17 @@ import {useMessageStore} from "@/stores/message";
 import {useI18n} from "vue-i18n";
 import {LoggerService} from "@/common/loggerService";
 import type {MediaItem} from "@/data/MediaItem";
+import type {ChannelItem} from "@/data/ChannelItem";
 
 const loggerService = new LoggerService();
 const {t, locale} = useI18n({useScope: "global"});
 
 const props = defineProps<{
-  video: MediaItem;
+  uuid: string;
+  language: string;
   active: boolean;
+  channelmode: boolean;
+  singleview: boolean;
 }>();
 
 const chatModal = ref(null);
@@ -156,7 +163,7 @@ onMounted(() => {
 }
 .chat-messages-container {
   width: 100%;
-  height: 40vh;
+  min-height: 40.5vh;
 }
 .chat-input-container {
   height: 15vh;
@@ -206,5 +213,9 @@ onMounted(() => {
   overflow: hidden;
   min-height: 76vh;
   top: -1%;
+}
+.chat-input-container-outer {
+  bottom: 0.5em;
+  position: relative;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <!-- AnnouncementBanner -->
-  <div class="col-9 menu p-2 my-1 announcements-container">
+  <div class="col announcements-container">
     <template v-for="item in announcements" :key="item.uuid">
       <div class="row announcement-heading" :id="item.uuid">
         <div v-if="locale === 'de'">
@@ -49,7 +49,7 @@ onMounted(async () => {
   overflow: hidden;
   text-align: center;
   position: relative;
-  left: 3.5em;
+  left: 0.7em;
   color: var(--hans-dark-blue);
 }
 

@@ -19,65 +19,211 @@
             <img src="/bootstrap-icons/x-circle.svg" alt="api-btn" class="img-fluid img-btn" />
           </button>
         </div>
-        <textarea
-          v-model="message"
-          rows="3"
-          @keyup.enter="sendMessagePressEnter"
-          @keyup="onKeyup"
-          :placeholder="currTextAreaPlaceholder"
-          class="form-control message-container"
-          :readonly="messageStore.isRequestOngoing || allButtonsDisabled"
-          :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
-        >
-        </textarea>
-        <div class="btn-group dropup help-container">
-          <button
-            type="button"
-            class="btn btn-primary dropdown-toggle help-dropdown-btn"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            :disabled="allButtonsDisabled"
+        <div class="message-container-wrapper">
+          <textarea
+            v-model="message"
+            rows="3"
+            @keyup.enter="sendMessagePressEnter"
+            @keyup="onKeyup"
+            :placeholder="currTextAreaPlaceholder"
+            class="form-control message-container"
+            :readonly="messageStore.isRequestOngoing || allButtonsDisabled"
+            :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
           >
-            <img src="/bootstrap-icons/question-circle-fill.svg" alt="api-btn" class="img-fluid img-btn" />
-          </button>
-          <ul class="dropdown-menu help-dropdown-menu btn-container">
-            <li class="template-item">
-              <a class="dropdown-item" href="#" @click="handleTemplateSelection(t('ChatInput.promptExampleExercise'))"
-                ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
-                  t("ChatInput.promptExampleExerciseBtn")
-                }}</a
-              >
-            </li>
-            <li class="template-item">
-              <a
-                class="dropdown-item"
-                href="#"
-                @click="handleTemplateSelection(t('ChatInput.promptExampleShortSummary'))"
-                ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
-                  t("ChatInput.promptExampleShortSummaryBtn")
-                }}</a
-              >
-            </li>
-            <li class="template-item">
-              <a class="dropdown-item" href="#" @click="handleTemplateSelection(t('ChatInput.promptExampleSummary'))"
-                ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
-                  t("ChatInput.promptExampleSummaryBtn")
-                }}</a
-              >
-            </li>
-            <li class="template-item">
-              <a
-                class="dropdown-item"
-                href="#"
-                @click="handleTemplateSelection(t('ChatInput.promptExampleQuestionaire'))"
-                ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
-                  t("ChatInput.promptExampleQuestionaireBtn")
-                }}</a
-              >
-            </li>
-          </ul>
+          </textarea>
+
+          <!-- Buttons below the text area -->
+          <div class="buttons-container">
+            <button
+              v-if="props.channelmode === true"
+              :class="
+                currToggleShortcutOptionSearch === true
+                  ? 'btn btn-primary form-control option-button option-button-active'
+                  : 'btn btn-primary form-control option-button'
+              "
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              @click="toggleShortcutOptionSearch()"
+              :title="t('ChatInput.tooltipShortcutOptionSearch')"
+              :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
+            >
+              <img
+                src="/bootstrap-icons/search.svg"
+                alt="api-btn"
+                :class="
+                  currToggleShortcutOptionSearch === true
+                    ? 'img-fluid img-option-btn-active'
+                    : 'img-fluid img-option-btn'
+                "
+              />
+              <span class="button-text">{{ t("ChatInput.shortcutOptionSearch") }}</span>
+            </button>
+            <button
+              v-if="props.channelmode === false"
+              :class="
+                currToggleShortcutOptionSlides === true
+                  ? 'btn btn-primary form-control option-button option-button-active'
+                  : 'btn btn-primary form-control option-button'
+              "
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              @click="toggleShortcutOptionSlides()"
+              :title="t('ChatInput.tooltipShortcutOptionSlides')"
+              :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
+            >
+              <img
+                src="/bootstrap-icons/file-earmark-slides.svg"
+                alt="api-btn"
+                :class="
+                  currToggleShortcutOptionSlides === true
+                    ? 'img-fluid img-option-btn-active'
+                    : 'img-fluid img-option-btn'
+                "
+              />
+              <span class="button-text">{{ t("ChatInput.shortcutOptionSlides") }}</span>
+            </button>
+            <button
+              v-if="props.channelmode === false"
+              :class="
+                currToggleShortcutOptionSnapshot === true
+                  ? 'btn btn-primary form-control option-button option-button-active'
+                  : 'btn btn-primary form-control option-button'
+              "
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              @click="toggleShortcutOptionSnapshot()"
+              :title="t('ChatInput.tooltipShortcutOptionSnapshot')"
+              :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
+            >
+              <img
+                src="/bootstrap-icons/camera.svg"
+                alt="api-btn"
+                :class="
+                  currToggleShortcutOptionSnapshot === true
+                    ? 'img-fluid img-option-btn-active'
+                    : 'img-fluid img-option-btn'
+                "
+              />
+              <span class="button-text">{{ t("ChatInput.shortcutOptionSnapshot") }}</span>
+            </button>
+            <button
+              :class="
+                currToggleShortcutOptionReasoning === true
+                  ? 'btn btn-primary form-control option-button option-button-active'
+                  : 'btn btn-primary form-control option-button'
+              "
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              @click="toggleShortcutOptionReasoning()"
+              :title="t('ChatInput.tooltipShortcutOptionReasoning')"
+              :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
+            >
+              <img
+                src="/bootstrap-icons/lightbulb.svg"
+                alt="api-btn"
+                :class="
+                  currToggleShortcutOptionReasoning === true
+                    ? 'img-fluid img-option-btn-active'
+                    : 'img-fluid img-option-btn'
+                "
+              />
+              <span class="button-text">{{ t("ChatInput.shortcutOptionReasoning") }}</span>
+            </button>
+            <button
+              :class="
+                currToggleShortcutOptionTutor === true
+                  ? 'btn btn-primary form-control option-button option-button-active'
+                  : 'btn btn-primary form-control option-button'
+              "
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              @click="toggleShortcutOptionTutor()"
+              :title="t('ChatInput.tooltipShortcutOptionTutor')"
+              :disabled="messageStore.isRequestOngoing || allButtonsDisabled"
+            >
+              <img
+                src="/bootstrap-icons/mortarboard-fill.svg"
+                alt="api-btn"
+                :class="
+                  currToggleShortcutOptionTutor === true
+                    ? 'img-fluid img-option-btn-active'
+                    : 'img-fluid img-option-btn'
+                "
+              />
+              <span class="button-text">{{ t("ChatInput.shortcutOptionTutor") }}</span>
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary form-control dropdown-toggle help-button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              :disabled="allButtonsDisabled"
+            >
+              <img src="/bootstrap-icons/question-circle-fill.svg" alt="api-btn" class="img-fluid img-btn" />
+              <span class="button-text">{{ t("ChatInput.help") }}</span>
+            </button>
+            <ul v-if="props.channelmode" class="dropdown-menu help-dropdown-menu btn-container">
+              <li class="template-item">
+                <a class="dropdown-item" href="#" @click="handleTemplateSelection(t('ChatInput.promptExampleSearch'))"
+                  ><img src="/bootstrap-icons/search.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleSearchBtn")
+                  }}</a
+                >
+              </li>
+            </ul>
+            <ul v-else class="dropdown-menu help-dropdown-menu btn-container">
+              <li class="template-item">
+                <a class="dropdown-item" href="#" @click="handleTemplateSelection(t('ChatInput.promptExampleExercise'))"
+                  ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleExerciseBtn")
+                  }}</a
+                >
+              </li>
+              <li class="template-item">
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="handleTemplateSelection(t('ChatInput.promptExampleExplainTerm'))"
+                  ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleExplainTermBtn")
+                  }}</a
+                >
+              </li>
+              <li class="template-item">
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="handleTemplateSelection(t('ChatInput.promptExampleSolveEquation'))"
+                  ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleSolveEquationBtn")
+                  }}</a
+                >
+              </li>
+              <li class="template-item">
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="handleTemplateSelection(t('ChatInput.promptExampleCalcFunction'))"
+                  ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleCalcFunctionBtn")
+                  }}</a
+                >
+              </li>
+              <li class="template-item">
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="handleTemplateSelection(t('ChatInput.promptExampleQuestionaire'))"
+                  ><img src="/bootstrap-icons/card-text.svg" alt="api-btn" class="img-fluid dropdown-img" />{{
+                    t("ChatInput.promptExampleQuestionaireBtn")
+                  }}</a
+                >
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
+      <!-- Menu Bar -->
       <div class="col-12 d-flex justify-content-center align-items-center">
         <div class="col-8 d-flex justify-content-center align-items-center control-box">
           <div class="input-group dropup">
@@ -104,7 +250,7 @@
               <img :src="sendButtonImage" alt="api-btn" class="img-fluid img-btn" />
             </button>
             <button
-              v-if="!messageStore.isMessagesEmpty(video.uuid)"
+              v-if="!messageStore.isMessagesEmpty(props.uuid)"
               @click="regenerateMessageClickButton"
               class="btn btn-primary form-control btn-container"
               data-bs-toggle="tooltip"
@@ -116,6 +262,7 @@
             </button>
             <ChatSettingsWindow
               :disableComp="messageStore.isRequestOngoing || allButtonsDisabled"
+              :channelmode="props.channelmode"
               @chatSettingsWindowClosed="handleChatSettingsWindowClosed($event)"
             />
             <button
@@ -158,6 +305,7 @@ import {useMediaStore} from "@/stores/media";
 import ChatServiceInfo from "@/components/ChatServiceInfo.vue";
 import ChatSettingsWindow from "./ChatSettingsWindow.vue";
 import type {MediaItem} from "@/data/MediaItem";
+import type {ChannelItem} from "@/data/ChannelItem";
 import type {Message, MessageContent, TextContent} from "@/data/Message";
 import {useMessageStore} from "@/stores/message";
 import {useChatStore} from "@/stores/chat";
@@ -174,7 +322,9 @@ const chatStore = useChatStore();
 const eventBus: Emitter<Record<EventType, unknown>> = inject("eventBus")!;
 
 const props = defineProps<{
-  video: MediaItem;
+  uuid: string;
+  language: string;
+  channelmode: boolean;
 }>();
 
 const chatServiceInfo = ref(null);
@@ -191,6 +341,10 @@ const isTemplateButtonDisabled = ref(false);
 const sendButtonImage = ref("/bootstrap-icons/send-check-fill.svg");
 const sendButtonTooltipTitle = ref(t("ChatInput.tooltipSendButtonContextAndCite"));
 
+chatStore.toggleSwitchContext(true);
+chatStore.toggleSwitchCitation(true);
+chatStore.toggleSwitchTutor(false);
+
 const allButtonsDisabled = computed(() => {
   return (
     isSettingsButtonDisabled.value ||
@@ -203,35 +357,200 @@ const allButtonsDisabled = computed(() => {
   );
 });
 
+const currToggleShortcutOptionSearch = ref(
+  false || (chatStore.isSwitchChannelContextEnabled && chatStore.isSwitchChannelCitationEnabled),
+);
+const toggleShortcutOptionSearch = () => {
+  const wasSlidesModeActive = currToggleShortcutOptionSlides.value;
+  currToggleShortcutOptionSearch.value = !currToggleShortcutOptionSearch.value;
+  if (currToggleShortcutOptionSearch.value === true) {
+    chatStore.toggleSwitchVision(false);
+    chatStore.toggleSwitchVisionSnapshot(false);
+    chatStore.toggleSwitchSelectedContext(false);
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+    chatStore.toggleSwitchChannelContext(true);
+    chatStore.toggleSwitchChannelCitation(true);
+    currToggleShortcutOptionSlides.value = false;
+    currToggleShortcutOptionSnapshot.value = false;
+  } else {
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+    chatStore.toggleSwitchChannelContext(false);
+    chatStore.toggleSwitchChannelCitation(false);
+  }
+  if (wasSlidesModeActive === true) {
+    mediaStore.setSwitchSlidesAndVideo(false);
+    chatStore.storeChatSettings();
+    //router.push(router.currentRoute.value);
+    nextTick(() => {
+      window.location.reload();
+    });
+  } else {
+    chatStore.storeChatSettings();
+  }
+  updateUI();
+};
+
+const currToggleShortcutOptionSnapshot = ref(false || chatStore.isSwitchVisionSnapshotEnabled);
+const toggleShortcutOptionSnapshot = () => {
+  const wasSlidesModeActive = currToggleShortcutOptionSlides.value;
+  currToggleShortcutOptionSnapshot.value = !currToggleShortcutOptionSnapshot.value;
+  if (currToggleShortcutOptionSnapshot.value === true) {
+    chatStore.toggleSwitchReasoning(false);
+    chatStore.toggleSwitchVisionSnapshot(true);
+    chatStore.toggleSwitchSelectedContext(false);
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+    currToggleShortcutOptionSlides.value = false;
+    currToggleShortcutOptionReasoning.value = false;
+    currToggleShortcutOptionSearch.value = false;
+  } else {
+    chatStore.toggleSwitchVisionSnapshot(false);
+  }
+  if (wasSlidesModeActive === true) {
+    mediaStore.setSwitchSlidesAndVideo(false);
+    chatStore.storeChatSettings();
+    //router.push(router.currentRoute.value);
+    nextTick(() => {
+      window.location.reload();
+    });
+  } else {
+    chatStore.storeChatSettings();
+  }
+  updateUI();
+};
+
+const currToggleShortcutOptionReasoning = ref(false || chatStore.isSwitchReasoningEnabled);
+const toggleShortcutOptionReasoning = () => {
+  const wasSlidesModeActive = currToggleShortcutOptionSlides.value;
+  currToggleShortcutOptionReasoning.value = !currToggleShortcutOptionReasoning.value;
+  if (currToggleShortcutOptionReasoning.value === true) {
+    chatStore.toggleSwitchReasoning(true);
+    chatStore.toggleSwitchVisionSnapshot(false);
+    chatStore.toggleSwitchVisionSnapshot(false);
+    chatStore.toggleSwitchSelectedContext(false);
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+    currToggleShortcutOptionSnapshot.value = false;
+    currToggleShortcutOptionSlides.value = false;
+    currToggleShortcutOptionSearch.value = false;
+  } else {
+    chatStore.toggleSwitchReasoning(false);
+  }
+  if (wasSlidesModeActive === true) {
+    mediaStore.setSwitchSlidesAndVideo(false);
+    chatStore.storeChatSettings();
+    //router.push(router.currentRoute.value);
+    nextTick(() => {
+      window.location.reload();
+    });
+  } else {
+    chatStore.storeChatSettings();
+  }
+  updateUI();
+};
+
+const currToggleShortcutOptionTutor = ref(false || chatStore.isSwitchTutorEnabled);
+const toggleShortcutOptionTutor = () => {
+  currToggleShortcutOptionTutor.value = !currToggleShortcutOptionTutor.value;
+  if (currToggleShortcutOptionTutor.value === true) {
+    chatStore.toggleSwitchTutor(true);
+  } else {
+    chatStore.toggleSwitchTutor(false);
+  }
+  chatStore.storeChatSettings();
+  updateUI();
+};
+
+const currToggleShortcutOptionSlides = ref(false || chatStore.isSwitchVisionEnabled);
+const toggleShortcutOptionSlides = () => {
+  currToggleShortcutOptionSlides.value = !currToggleShortcutOptionSlides.value;
+  mediaStore.setSwitchSlidesAndVideo(currToggleShortcutOptionSlides.value);
+  if (currToggleShortcutOptionSlides.value === true) {
+    chatStore.toggleSwitchVision(true);
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+    currToggleShortcutOptionSnapshot.value = false;
+    currToggleShortcutOptionReasoning.value = false;
+    currToggleShortcutOptionSearch.value = false;
+  } else {
+    chatStore.toggleSwitchVision(false);
+    chatStore.toggleSwitchContext(true);
+    chatStore.toggleSwitchCitation(true);
+  }
+  chatStore.storeChatSettings();
+  updateUI();
+  //router.push(router.currentRoute.value);
+  nextTick(() => {
+    window.location.reload();
+  });
+};
+
 const currTextAreaPlaceholder = ref(t("ChatInput.dropdownPromptOptionWithContext"));
 
 const updateUI = () => {
   if (!messageStore.getServicesAvailable || !messageStore.getServicesAlive) {
     currTextAreaPlaceholder.value = t("ChatInput.loading");
   } else if (chatStore.isSwitchSelectedContextEnabled === true && chatStore.isSwitchContextEnabled === false) {
-    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithSelectedTranscriptContext");
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithSelectedTranscriptContext") + ".";
     sendButtonImage.value = "/bootstrap-icons/send-arrow-down-fill.svg";
     sendButtonTooltipTitle.value = t("ChatInput.dropdownPromptOptionWithSelectedTranscriptContext");
   } else if (chatStore.isSwitchCitationEnabled === true && chatStore.isSwitchContextEnabled === true) {
-    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithContextAndCite");
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithContextAndCite") + ".";
     sendButtonImage.value = "/bootstrap-icons/send-check-fill.svg";
     sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButtonContextAndCite");
   } else if (chatStore.isSwitchContextEnabled === true) {
-    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithContext");
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithContext") + ".";
     sendButtonImage.value = "/bootstrap-icons/send-plus-fill.svg";
     sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButtonContext");
   } else {
-    currTextAreaPlaceholder.value = t("ChatInput.placeholder");
+    currTextAreaPlaceholder.value = t("ChatInput.placeholder") + ".";
     sendButtonImage.value = "/bootstrap-icons/send-fill.svg";
     sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButton");
   }
+
   if (chatStore.isSwitchVisionSnapshotEnabled === true) {
-    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithSnapshotContext");
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithSnapshotContext") + ".";
     sendButtonImage.value = "/bootstrap-icons/send-check-fill.svg";
     sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButtonSnapshotContext");
   } else if (chatStore.isSwitchVisionEnabled === true) {
     currTextAreaPlaceholder.value += t("ChatInput.currentSlide") + curr_page.value + "].";
   }
+
+  if (
+    props.channelmode === true &&
+    chatStore.isSwitchChannelCitationEnabled === true &&
+    chatStore.isSwitchChannelContextEnabled === true
+  ) {
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithChannelContextAndCite") + ".";
+    sendButtonImage.value = "/bootstrap-icons/send-check-fill.svg";
+    sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButtonChannelContextAndCite");
+  } else if (props.channelmode === true && chatStore.isSwitchChannelContextEnabled === true) {
+    currTextAreaPlaceholder.value = t("ChatInput.dropdownPromptOptionWithChannelContext") + ".";
+    sendButtonImage.value = "/bootstrap-icons/send-plus-fill.svg";
+    sendButtonTooltipTitle.value = t("ChatInput.tooltipSendButtonChannelContext");
+  }
+
+  if (props.channelmode === false && chatStore.isSwitchReasoningEnabled === true) {
+    currTextAreaPlaceholder.value =
+      currTextAreaPlaceholder.value + " " + t("ChatInput.shortcutOptionReasoning") + " " + t("ChatInput.active") + ".";
+    sendButtonTooltipTitle.value =
+      currTextAreaPlaceholder.value + " " + t("ChatInput.shortcutOptionReasoning") + " " + t("ChatInput.active") + ".";
+  }
+  if (props.channelmode === false && chatStore.isSwitchTutorEnabled === true) {
+    currTextAreaPlaceholder.value =
+      currTextAreaPlaceholder.value + " " + t("ChatInput.shortcutOptionTutor") + " " + t("ChatInput.active") + ".";
+    sendButtonTooltipTitle.value =
+      currTextAreaPlaceholder.value + " " + t("ChatInput.shortcutOptionTutor") + " " + t("ChatInput.active") + ".";
+  }
+  // Update Option Shortcuts
+  currToggleShortcutOptionSearch.value =
+    chatStore.isSwitchChannelContextEnabled === true && chatStore.isSwitchChannelCitationEnabled === true;
+  currToggleShortcutOptionSnapshot.value = chatStore.isSwitchVisionSnapshotEnabled;
+  currToggleShortcutOptionSlides.value = chatStore.isSwitchVisionEnabled;
+  currToggleShortcutOptionReasoning.value = chatStore.isSwitchReasoningEnabled;
+  currToggleShortcutOptionTutor.value = chatStore.isSwitchTutorEnabled;
   updateTranslateDisabled();
 };
 
@@ -303,7 +622,7 @@ watch(chatStore.isSettingsOpen, async (newText) => {
 });
 
 watch(messageStore.messages, () => {
-  const lastBotMessage = messageStore.getLastMessage(props.video.uuid);
+  const lastBotMessage = messageStore.getLastMessage(props.uuid);
   if (
     lastBotMessage !== undefined &&
     lastBotMessage !== null &&
@@ -367,7 +686,10 @@ const performMessageRequest = async (
 ): Promise<void> => {
   messageStore.deactivateErrorMessage();
   switchControlsActive();
-  if (chatStore.isSwitchContextEnabled === true) {
+  if (
+    chatStore.isSwitchContextEnabled === true ||
+    (chatStore.isSwitchChannelContextEnabled === true && props.channelmode === true)
+  ) {
     loggerService.log("ChatInput:ContextMessage:Start");
     // Empty context means use vector db
     requestMessage.context = "";
@@ -377,11 +699,11 @@ const performMessageRequest = async (
       return;
     }
     loggerService.log("ChatInput:ContextMessage:Finished");
-  } else if (chatStore.isSwitchSelectedContextEnabled === true) {
+  } else if (chatStore.isSwitchSelectedContextEnabled === true && props.channelmode === false) {
     loggerService.log("ChatInput:ContextSelectedMessage:Start");
     const selectedTranscriptContext = messageStore.getCurrentTranscriptSelection;
     loggerService.log("selectedTranscriptContext: " + selectedTranscriptContext);
-    const interval = mediaStore.getIntervalFromCurrentTranscriptText(props.video.language, selectedTranscriptContext);
+    const interval = mediaStore.getIntervalFromCurrentTranscriptText(props.language, selectedTranscriptContext);
     requestMessage.context = mediaStore.getCurrentTranscriptTextInInterval("en", interval);
     loggerService.log("translatedSelectedTranscriptContext: " + requestMessage.context);
     // Context set use selected context
@@ -417,12 +739,15 @@ const performMessageRequest = async (
 };
 
 const addMessage = async (): Promise<void> => {
+  if (chatStore.isSwitchVisionSnapshotEnabled && messageStore.getVideoSnapshot === "") {
+    return;
+  }
   if (
     message.value.trim() !== "" &&
     messageStore.getServicesAvailable === true &&
     messageStore.getServicesAlive === true
   ) {
-    const uuid = props.video.uuid;
+    const uuid = props.uuid;
     const messageContentText = message.value.split("\\n").join(" ").trim().split("_").join(" ").trim();
     const contentItem = {
       type: "text",
@@ -433,16 +758,24 @@ const addMessage = async (): Promise<void> => {
       isUser: true,
       context: "",
       contextUuid: uuid,
-      useContext: chatStore.isSwitchContextEnabled || chatStore.isSwitchSelectedContextEnabled,
-      useContextAndCite: chatStore.isSwitchCitationEnabled,
+      useContext:
+        chatStore.isSwitchContextEnabled ||
+        chatStore.isSwitchSelectedContextEnabled ||
+        (chatStore.isSwitchChannelContextEnabled && props.channelmode === true),
+      useContextAndCite:
+        chatStore.isSwitchCitationEnabled || (chatStore.isSwitchChannelCitationEnabled && props.channelmode === true),
+      useChannelContext: props.channelmode,
       useTranslate: chatStore.isSwitchTranslationEnabled,
       history: messageStore.createMessageHistory(uuid),
       actAsTutor: chatStore.isSwitchTutorEnabled,
-      useVision: chatStore.isSwitchVisionEnabled,
-      useVisionSurroundingSlides: chatStore.isSwitchVisionSurroundingSlidesEnabled,
-      useVisionSnapshot: chatStore.isSwitchVisionSnapshotEnabled,
+      useVision: chatStore.isSwitchVisionEnabled && props.channelmode === false,
+      useVisionSurroundingSlides: chatStore.isSwitchVisionSurroundingSlidesEnabled && props.channelmode === false,
+      useVisionSnapshot: chatStore.isSwitchVisionSnapshotEnabled && props.channelmode === false,
       snapshot: messageStore.getVideoSnapshot,
       stream: false,
+      reasoning: chatStore.isSwitchReasoningEnabled,
+      mediaContextUuids: [],
+      documentContextUuids: [],
     } as Message;
     // TODO: CHECK IF WE NEED TO LOG THE MESSAGES HERE
     matomo_clicktracking("message_to_llm", messageContentText);
@@ -452,7 +785,7 @@ const addMessage = async (): Promise<void> => {
 
 const regenerateMessageClickButton = () => {
   trackSending("click_button", true);
-  const uuid = props.video.uuid;
+  const uuid = props.uuid;
   if (messageStore.getMessages(uuid)?.length > 1) {
     messageStore.removeLastBotMessages(uuid);
     const lastUserMessage = messageStore.getLastMessage(uuid);
@@ -466,16 +799,25 @@ const regenerateMessageClickButton = () => {
           isUser: true,
           context: "",
           contextUuid: uuid,
-          useContext: chatStore.isSwitchContextEnabled || chatStore.isSwitchSelectedContextEnabled,
-          useContextAndCite: chatStore.isSwitchCitationEnabled,
+          useContext:
+            chatStore.isSwitchContextEnabled ||
+            chatStore.isSwitchSelectedContextEnabled ||
+            (chatStore.isSwitchChannelContextEnabled && props.channelmode === true),
+          useContextAndCite:
+            chatStore.isSwitchCitationEnabled ||
+            (chatStore.isSwitchChannelCitationEnabled && props.channelmode === true),
+          useChannelContext: props.channelmode,
           useTranslate: chatStore.isSwitchTranslationEnabled,
           history: pastMessages,
           actAsTutor: chatStore.isSwitchTutorEnabled,
-          useVision: chatStore.isSwitchVisionEnabled,
-          useVisionSurroundingSlides: chatStore.isSwitchVisionSurroundingSlidesEnabled,
-          useVisionSnapshot: chatStore.isSwitchVisionSnapshotEnabled,
+          useVision: chatStore.isSwitchVisionEnabled && props.channelmode === false,
+          useVisionSurroundingSlides: chatStore.isSwitchVisionSurroundingSlidesEnabled && props.channelmode === false,
+          useVisionSnapshot: chatStore.isSwitchVisionSnapshotEnabled && props.channelmode === false,
           snapshot: messageStore.getVideoSnapshot,
           stream: false,
+          reasoning: chatStore.isSwitchReasoningEnabled,
+          mediaContextUuids: [],
+          documentContextUuids: [],
         } as Message;
         performMessageRequest(uuid, requestMessage, true);
         return;
@@ -487,7 +829,7 @@ const regenerateMessageClickButton = () => {
 
 const clearMessagesClickButton = () => {
   matomo_clicktracking("click_button", "Clear messages");
-  messageStore.clearMessages(props.video.uuid);
+  messageStore.clearMessages(props.uuid);
   messageStore.storeMessages();
 };
 
@@ -539,9 +881,9 @@ const handleTemplateSelection = (text: string) => {
   border-radius: 25px;
   height: 100%;
   z-index: 1;
-  max-width: 128px;
+  max-width: 256px;
   margin-left: 0.5em;
-  margin-right: 1em;
+  min-width: 128px;
 }
 
 .btn-del-snapshot {
@@ -574,6 +916,79 @@ const handleTemplateSelection = (text: string) => {
   resize: none;
   z-index: 2;
   left: 0.7em;
+}
+
+.message-container-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+textarea.message-container {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.1em;
+  left: 0.7em;
+  position: relative;
+  padding-top: 0.3em;
+  container-type: inline-size;
+}
+
+.option-button {
+  color: var(--hans-dark);
+  background-color: var(--hans-light-blue);
+  border-color: var(--hans-light-blue);
+  border-radius: 25px;
+  width: fit-content;
+  min-width: 2rem;
+  align-items: center;
+  display: flex;
+  padding: 0.5rem;
+}
+
+.option-button:hover {
+  color: var(--hans-dark);
+  background-color: var(--hans-medium-blue);
+  border-color: var(--hans-medium-blue);
+}
+
+.option-button-active {
+  color: var(--hans-light-gray); /* rgb(72 170 255); */
+  background-color: var(--hans-medium-blue); /* rgb(13, 110, 253); or #00bdff42;*/
+  border-color: var(--hans-light-gray); /* rgb(72 170 255); */
+}
+
+.img-option-btn {
+  /*filter: invert(calc(1 - var(--button-dark-mode, 0)));*/
+  height: 24px;
+  width: 32px;
+}
+
+.img-option-btn-active {
+  filter: invert(calc(1 - var(--button-dark-mode, 0)));
+  height: 24px;
+  width: 32px;
+}
+
+.help-button {
+  color: var(--hans-light);
+  border-radius: 25px;
+  width: fit-content;
+  min-width: 2rem;
+  align-items: center;
+  display: flex;
+  padding: 0.5rem;
+}
+
+.button-text {
+  display: flex;
+  padding-left: 0.2em;
 }
 
 .btn-container {
@@ -614,6 +1029,7 @@ const handleTemplateSelection = (text: string) => {
 }
 
 .btn-container:hover {
+  color: var(--hans-dark);
   background-color: var(--hans-light);
 }
 
@@ -646,22 +1062,6 @@ const handleTemplateSelection = (text: string) => {
   background-image: url("/bootstrap-icons/card-text.svg");
 }
 
-.help-container {
-  position: relative;
-  height: 100%;
-  right: 1.6em;
-  z-index: 1;
-  width: 18%;
-  min-width: 100px;
-  max-width: 112px;
-}
-
-.help-dropdown-btn {
-  width: 100%;
-  text-align: right;
-  border-radius: 20px;
-}
-
 .help-dropdown-menu {
   position: absolute;
   top: 100%;
@@ -670,5 +1070,23 @@ const handleTemplateSelection = (text: string) => {
 
 .template-item > a {
   margin-right: 20px;
+}
+
+@media (max-width: 600px) {
+  .button-text {
+    display: none;
+  }
+  .img-btn {
+    font-size: 20px; /* Adjust icon size */
+  }
+}
+
+@container (max-width: 544px) {
+  .button-text {
+    display: none;
+  }
+  .img-btn {
+    font-size: 20px; /* Adjust icon size */
+  }
 }
 </style>

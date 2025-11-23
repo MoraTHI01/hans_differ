@@ -18,6 +18,24 @@ do
     esac
 done
 
+if [[ $flagBuild -eq 1 ]];
+then
+    if [[ -d ./hans-modules ]];
+    then
+        rm -Rf ./hans-modules
+    fi
+    mkdir ./hans-modules
+    mkdir ./hans-modules/dist
+    cp -rf ./../common/modules/dist/*.whl ./hans-modules/dist/
+else
+    if [[ ! -d ./hans-modules ]];
+    then
+        mkdir ./hans-modules
+        mkdir ./hans-modules/dist
+        cp -rf ./../common/modules/dist/*.whl ./hans-modules/dist/
+    fi
+fi
+
 echo "COMPOSE_PROJECT_NAME=hans-frontend" > ./.env
 : # Copy config values from .env.config file on project root (if not available, copy defaults from .env.template)
 if [ -f ./../.env.config ];
@@ -60,7 +78,7 @@ then
         docker compose -f docker-compose.yaml -f docker-compose.test.yaml up --force-recreate --build --always-recreate-deps -d
     else
         echo "Docker Compose Up And Build frontend"
-        docker compose up --force-recreate --build --always-recreate-deps -d
+        docker compose -f docker-compose.yaml up --force-recreate --build --always-recreate-deps -d
     fi
 else
     echo "Docker Compose Up frontend"
@@ -70,7 +88,7 @@ else
         docker compose -f docker-compose.yaml -f docker-compose.test.yaml up -d
     else
         echo "Docker Compose Up frontend"
-        docker compose up -d
+        docker compose -f docker-compose.yaml up -d
     fi
 fi
 exit $?

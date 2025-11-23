@@ -8,14 +8,15 @@ class SearchTrieClass {
   }
 
   search(word: string) {
+    let word_lower = word.toLowerCase();
     let current = this.trie;
 
-    for (let i = 0; i < word.length; i++) {
-      let char = word[i];
+    for (let i = 0; i < word_lower.length; i++) {
+      let char = word_lower[i];
       let j = i + 1;
       if (char in current["children"]) {
         current = current["children"][char];
-        if (j === word.length) {
+        if (j === word_lower.length) {
           return current;
         }
       } else {

@@ -69,7 +69,7 @@ def search(query: SearchQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     query_prep = " ".join(prep_querystrings_tolist(query.q))
     fields_prep = prep_querystrings_tolist(query.f)
@@ -146,7 +146,7 @@ def recent(query: RecentQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     print("Recent")
     # print("RecentQuery:")
@@ -180,7 +180,7 @@ def recent(query: RecentQuery):
     meta_data_list_filtered = [
         item
         for item in meta_data_list_filtered
-        if item["state"]["published"] is True and item["state"]["listed"] is True
+        if "state" in item and item["state"]["published"] is True and item["state"]["listed"] is True
     ]
     # print("RecentResult:")
     # print(json.dumps(meta_data_list_filtered, indent=4, default=str))
@@ -195,7 +195,7 @@ def channels(query: ChannelsQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     print("Channels")
     # print("ChannelsQuery:")

@@ -106,6 +106,7 @@ def configure_flask_multipass(app):
             "type": "oidc_identity_provider",
             "identifier_field": "sub",
             "shibboleth": oidc_auth_config["oidc_auth_provider"]["shibboleth"],
+            "restricted_permission_provider": oidc_auth_config["oidc_auth_provider"]["restricted_permission_provider"],
         },
         "simple_identity_provider": {
             "type": "static",
@@ -130,6 +131,7 @@ def configure_flask_multipass(app):
     app.config["MULTIPASS_IDENTITY_INFO_KEYS"] = [
         "subject-id",
         "givenName",
+        "mail",
         "sn",
         "preferedLanguage",
         "dfnEduPersonFieldOfStudyString",

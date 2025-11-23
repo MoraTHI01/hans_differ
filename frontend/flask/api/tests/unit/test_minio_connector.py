@@ -10,8 +10,7 @@ __status__ = "Draft"
 
 
 import pytest
-
-from api.modules.connectors.minio_connector import MinioConnector
+from connectors.minio_connector import MinioConnector
 
 
 @pytest.fixture

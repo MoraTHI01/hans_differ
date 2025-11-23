@@ -1,4 +1,5 @@
 import type {SurveyItem} from "@/data/SurveyItem";
+import type {LmsGatedAccessDetails} from "@/data/Protection";
 
 class ChannelThumbnails {
   constructor(init?: Partial<ChannelThumbnails>) {
@@ -27,6 +28,9 @@ class ChannelItem {
   university?: string;
   university_acronym?: string;
   surveys?: Array<SurveyItem>;
+  documents?: Array<string>;
+  lms_gated_access?: boolean;
+  lms_gated_access_details: LmsGatedAccessDetails;
 
   private toObject() {
     return {
@@ -46,6 +50,9 @@ class ChannelItem {
       university: this.university,
       university_acronym: this.university_acronym,
       surveys: this.surveys,
+      documents: this.documents,
+      lms_gated_access: this.lms_gated_access,
+      lms_gated_access_details: this.lms_gated_access_details,
     };
   }
 
@@ -72,6 +79,9 @@ class ChannelItem {
     resultItem.university = item.university;
     resultItem.university_acronym = item.university_acronym;
     resultItem.surveys = item.surveys;
+    resultItem.documents = item.documents;
+    resultItem.lms_gated_access = item.lms_gated_access;
+    resultItem.lms_gated_access_details = item.lms_gated_access_details;
     return resultItem;
   }
 }

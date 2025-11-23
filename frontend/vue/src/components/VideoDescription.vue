@@ -137,6 +137,7 @@ if (props.video && props.video.licenses) {
   color: var(--hans-dark);
   text-decoration: none;
   transition: all 0.2s ease-in-out;
+  pointer-events: auto;
 }
 
 .link:hover {

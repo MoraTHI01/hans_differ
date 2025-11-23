@@ -19,7 +19,7 @@ from flask_openapi3 import APIBlueprint, Tag, FileStorage
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import date
 
-from api.modules.connectors.connector_provider import connector_provider
+from connectors.connector_provider import connector_provider
 from api.modules.responses import ErrorForbidden, UnauthorizedResponse, RefreshAuthenticationRequired
 from api.modules.responses import ErrorResponse, JsonResponse
 from api.modules.security import SecurityConfiguration, SecurityMetaData

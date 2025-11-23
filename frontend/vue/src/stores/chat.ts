@@ -1,12 +1,14 @@
 // store.ts
 import {defineStore} from "pinia";
 import {LoggerService} from "@/common/loggerService";
+import {useAuthStore} from "@/stores/auth";
 
 const loggerService = new LoggerService();
 
 // Define the store
 export const useChatStore = defineStore("chat", {
   state: () => ({
+    // Media chat settings
     switchContext: true,
     switchCitation: true,
     switchSelectedContext: false,
@@ -14,12 +16,18 @@ export const useChatStore = defineStore("chat", {
     switchVisionSurroundingSlides: false,
     switchVisionSnapshot: false,
     switchTutor: true,
+    switchReasoning: false,
+    // Channel chat settings
+    switchChannelContext: true,
+    switchChannelCitation: true,
+    // General chat settings
     switchTranslation: false,
     translationEnabled: false,
     settingsOpen: false,
   }),
   // Define getters to access computed values based on the state
   getters: {
+    // Media chat getters
     isSwitchContextEnabled: (state) => {
       return state.switchContext;
     },
@@ -41,6 +49,17 @@ export const useChatStore = defineStore("chat", {
     isSwitchTutorEnabled: (state) => {
       return state.switchTutor;
     },
+    isSwitchReasoningEnabled: (state) => {
+      return state.switchReasoning;
+    },
+    // Channel chat getters
+    isSwitchChannelContextEnabled: (state) => {
+      return state.switchChannelContext;
+    },
+    isSwitchChannelCitationEnabled: (state) => {
+      return state.switchChannelCitation;
+    },
+    // General chat getters
     isSwitchTranslationEnabled: (state) => {
       return state.switchTranslation;
     },
@@ -53,6 +72,7 @@ export const useChatStore = defineStore("chat", {
   },
   // Define actions that can modify the state
   actions: {
+    // Media chat actions
     toggleSwitchContext(value: boolean) {
       this.switchContext = value;
       // If the main switch is turned off, also turn off the dependent switch
@@ -86,6 +106,25 @@ export const useChatStore = defineStore("chat", {
     toggleSwitchTutor(value: boolean) {
       this.switchTutor = value;
     },
+    toggleSwitchReasoning(value: boolean) {
+      this.switchVision = false;
+      this.switchVisionSnapshot = false;
+      this.switchReasoning = value;
+    },
+    // Channel chat actions
+    toggleSwitchChannelContext(value: boolean) {
+      this.switchChannelContext = value;
+      // If the main switch is turned off, also turn off the dependent switch
+      if (!value) {
+        this.switchChannelCitation = false;
+      }
+    },
+    toggleSwitchChannelCitation(value: boolean) {
+      if (this.switchChannelContext) {
+        this.switchChannelCitation = value;
+      }
+    },
+    // General chat actions
     toggleSwitchTranslation(value: boolean) {
       this.switchTranslation = value;
     },
@@ -97,9 +136,13 @@ export const useChatStore = defineStore("chat", {
     },
     loadChatSettings() {
       loggerService.log("loadChatSettings");
-      const serializedSettings = localStorage.getItem("hans_chatSettings");
+      // Store messages with uuid of user
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
+      const serializedSettings = localStorage.getItem("hans_chatSettings_" + user_id);
       if (serializedSettings) {
         const jsonObject = JSON.parse(serializedSettings);
+        // Media chat settings
         this.switchContext = jsonObject.switchContext;
         this.switchCitation = jsonObject.switchCitation;
         this.switchSelectedContext = jsonObject.switchSelectedContext;
@@ -107,6 +150,11 @@ export const useChatStore = defineStore("chat", {
         this.switchVisionSurroundingSlides = jsonObject.switchVisionSurroundingSlides;
         this.switchVisionSnapshot = jsonObject.switchVisionSnapshot;
         this.switchTutor = jsonObject.switchTutor;
+        this.switchReasoning = jsonObject.switchReasoning;
+        // Channel chat settings
+        this.switchChannelContext = jsonObject.switchChannelContext;
+        this.switchChannelCitation = jsonObject.switchChannelCitation;
+        // General chat settings
         this.switchTranslation = jsonObject.switchTranslation;
         this.translationEnabled = jsonObject.translationEnabled;
         loggerService.log("loadChatSettings:Loaded");
@@ -122,11 +170,17 @@ export const useChatStore = defineStore("chat", {
         switchVisionSurroundingSlides: this.switchVisionSurroundingSlides,
         switchVisionSnapshot: this.switchVisionSnapshot,
         switchTutor: this.switchTutor,
+        switchReasoning: this.switchReasoning,
+        switchChannelContext: this.switchChannelContext,
+        switchChannelCitation: this.switchChannelCitation,
         switchTranslation: this.switchTranslation,
         translationEnabled: this.translationEnabled,
       };
       const serializableSettings = JSON.stringify(settings);
-      localStorage.setItem("hans_chatSettings", serializableSettings);
+      // Store messages with uuid of user
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
+      localStorage.setItem("hans_chatSettings_" + user_id, serializableSettings);
       loggerService.log("storeChatSettings:Stored");
     },
   },
