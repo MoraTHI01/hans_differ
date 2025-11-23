@@ -1,0 +1,14 @@
+apache-airflow-client~=2.10.0
+minio~=7.2.15
+opensearch-py~=2.8.0
+pydantic~=2.10.6
+pymongo~=4.6.3
+requests
+typing
+openai==1.76.2
+tiktoken==0.9.0
+tokenizers==0.21.1
+mistral-common==1.5.4
+markdown
+beautifulsoup4
+langdetect

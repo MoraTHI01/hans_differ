@@ -36,7 +36,6 @@
 **/.DS_Store
 
 # Docker Environment Configuration
-*.env
 # Global config
 *.env.config
 
@@ -47,6 +46,14 @@ backend/channel-packages/*
 backend/channel-packages/**
 backend/nginx/default.conf.template
 
+# Common config
+common/modules/build
+common/modules/build/*/*
+common/modules/dist
+common/modules/dist/*/*
+common/modules/hans_shared_modules.egg-info
+common/modules/modules
+
 # Frontend config
 frontend/flask/api/auth/*.json
 frontend/flask/api/auth/*.pem
@@ -55,6 +62,8 @@ frontend/flask/api/auth/.env-e
 frontend/vue/.env-e
 frontend/scripts/*.json
 frontend/scripts/*/*
+frontend/hans-modules
+frontend/hans-modules/*/*
 
 # Airflow related folders
 ml-backend/airflow
@@ -83,3 +92,7 @@ ml-backend/dags/docker_jobs/*/modules/connectors/*
 
 # dev reports etc
 dev/load_test/report
+
+# .env files
+*.env
+
