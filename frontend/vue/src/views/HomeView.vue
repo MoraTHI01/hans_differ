@@ -7,6 +7,7 @@
       <LoadingBar class="media-loading" v-if="store.getRecentMediaLoading" />
       <VideoCard class="col-3" v-for="item in store.getRecentMedia" :video="item" />
     </div>
+    <AirflowStatus />
   </div>
   <BottomRow />
 </template>
@@ -18,6 +19,7 @@ import BottomRow from "@/components/BottomRow.vue";
 import LogoAndSearchbarRow from "@/components/LogoAndSearchbarRow.vue";
 import VideoCard from "@/components/VideoCard.vue";
 import MenuBanner from "@/components/MenuBanner.vue";
+import AirflowStatus from '@/components/AirflowStatus.vue';
 
 import {useMediaStore} from "@/stores/media";
 import {matomo_trackpageview} from "@/common/matomo_utils";

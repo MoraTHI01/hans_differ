@@ -124,6 +124,7 @@ const handleInterval = async (matchedInterval: [number, number]) => {
         locale.value,
         intervalContext,
         props.video.uuid,
+        false,
       );
       loggerService.log(questionnaire);
       try {

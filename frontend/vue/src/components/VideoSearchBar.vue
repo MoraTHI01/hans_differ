@@ -1,6 +1,6 @@
 <template>
   <!-- searchbar column -->
-  <div class="col-5 d-flex justify-content-center">
+  <div class="col-7 d-flex justify-content-center">
     <div class="form search-bar" ref="searchbar">
       <SearchButton :search="search" :localSearch="true" />
       <input
@@ -180,7 +180,7 @@ function inputHandler(event) {
 
   let lastWord = splitInput(event);
 
-  let resultWords = searchTrie.value.search(lastWord.toLowerCase());
+  let resultWords = searchTrie.value.search(lastWord);
 
   if (!resultWords) {
     notfound.value = true;

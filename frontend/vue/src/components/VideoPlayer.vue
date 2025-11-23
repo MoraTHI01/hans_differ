@@ -7,7 +7,7 @@
     preload="auto"
     width="640"
     height="360"
-    data-setup='{ "playbackRates": [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] }'
+    data-setup='{ "responsive": true, "fluid": true, "bigPlayButton": true, "playbackRates": [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] }'
   >
     <p class="vjs-no-js">
       {{ t("VideoPlayer.text") }}
@@ -36,21 +36,63 @@ const props = defineProps(["url", "subtitle_de", "subtitle_en", "language", "uui
 const videoPlayer = ref();
 const videoPlayerInfo = ref(null);
 const eventBus: Emitter<Record<EventType, unknown>> = inject("eventBus")!;
+const isPlaying = ref(false);
 
-let eventSeek = false;
-let seeking = false;
+const eventSeek = ref(false);
+const seeking = ref(false);
 let settingsMenuShown = false;
 let streamType = "dash";
 
 const historyStore = useHistoryStore();
+
+const toggleOngoing = ref(false);
+
+const togglePlay = () => {
+  if (toggleOngoing.value === false) {
+    toggleOngoing.value = true;
+    const player = videojs("videoPlayer");
+    if (player.paused()) {
+      player.play();
+    } else {
+      player.pause();
+    }
+    toggleOngoing.value = false;
+  }
+};
+
+const isFullscreen = ref(false);
+
+const handleFullscreen = () => {
+  loggerService.log("toggleFullscreen:Begin");
+  const divs = document.querySelectorAll(".vjs-control-bar");
+  let val = "x-small";
+  if (isFullscreen.value === true) {
+    loggerService.log("toggleFullscreen:VideoControlBar:Fontsize: larger");
+    val = "larger";
+  } else {
+    loggerService.log("toggleFullscreen:VideoControlBar:Fontsize: x-small");
+    val = "x-small";
+  }
+  divs.forEach((div) => {
+    div.style.fontSize = val;
+  });
+  loggerService.log("toggleFullscreen:End");
+};
 
 onMounted(() => {
   loadVideo();
   eventBus.on("setPositionEvent", (event: SetPositionEvent) => {
     matomo_clicktracking("videoplayer_click", "set_position: " + event.position);
     if (event.origin !== "video") {
-      eventSeek = true;
+      loggerService.log("setPositionEvent:VideoPlaypackPositionChangeFromOutside:start");
+      eventSeek.value = true;
+      const currPlayStatus = isPlaying.value;
+      if (currPlayStatus === true) videojs("videoPlayer").pause();
       videojs("videoPlayer").currentTime(event.position);
+      setTimeout(() => {
+        if (currPlayStatus === true) videojs("videoPlayer").play();
+      }, 1000);
+      loggerService.log("setPositionEvent:VideoPlaypackPositionChangeFromOutside:end");
     }
   });
   eventBus.on("play", (event: PlayEvent) => {
@@ -410,23 +452,23 @@ function loadVideo() {
     configurePlayerUI(player);
 
     // Handle and register events
-    player.on("seeking", () => (seeking = true));
+    player.on("seeking", () => (seeking.value = true));
     player.on("seeked", () => {
-      seeking = false;
+      seeking.value = false;
       // Only disables eventSeek when the current seek is complete since an
       // event may cause more than one seeking event
       // Since event seeks are very short this shouldn't interfere with manual seeking
-      eventSeek = false;
+      eventSeek.value = false;
     });
     player.on("timeupdate", () => {
-      if (seeking) {
+      if (seeking.value === true) {
         // Prevents sending time updates caused by the video seeking due to an event from another component
-        if (eventSeek) {
+        if (eventSeek.value === true) {
           return;
         }
 
         // Send regular position change events on manual seeking
-        eventBus.emit("setPositionEvent", new SetPositionEvent(player.currentTime(), "video"));
+        eventBus.emit("setPositionEvent", new SetPositionEvent(player.currentTime(), "video", 0));
       } else if (!player.paused()) {
         // If the video was not seeked manually through user interaction or event emit a playing event
         eventBus.emit("videoPlaying", player.currentTime());
@@ -438,6 +480,7 @@ function loadVideo() {
     });
     player.on("play", () => {
       matomo_clicktracking("videoplayer_click", "play");
+      isPlaying.value = true;
       // Get the Play/Pause button component
       const playPauseButton = player.controlBar.playToggle;
       // Set the new hover title for Play/Pause button
@@ -446,6 +489,7 @@ function loadVideo() {
     });
     player.on("pause", () => {
       matomo_clicktracking("videoplayer_click", "pause");
+      isPlaying.value = false;
       // Get the Play/Pause button component
       const playPauseButton = player.controlBar.playToggle;
       // Set the new hover title for Play/Pause button
@@ -459,9 +503,65 @@ function loadVideo() {
     player.on("click", () => {
       handleMuted(player);
     });
+    // Adjust handling of BigPlayButton
+    if (player.bigPlayButton) {
+      // Show it after pause or end
+      player.on("pause", () => {
+        player.bigPlayButton.el().style.display = "block";
+      });
+
+      player.on("ended", () => {
+        player.bigPlayButton.el().style.display = "block";
+      });
+
+      // Hide it on play
+      player.on("play", () => {
+        player.bigPlayButton.el().style.display = "none";
+      });
+    }
+    player.on("fullscreenchange", () => {
+      isFullscreen.value = player.isFullscreen();
+      handleFullscreen();
+    });
     //videoPlayer.value.play();
   });
+  const toggleVNode = h(
+    "div",
+    {
+      class: "vjs-toggle-playback",
+      translate: "yes",
+      "aria-live": "off",
+      "aria-atomic": "true",
+      style: {
+        pointerEvents: "auto",
+        userSelect: "auto",
+        cursor: "pointer",
+        touchAction: "manipulation",
+        position: "absolute",
+        inset: "0",
+        margin: "1.5%",
+        marginBottom: "8%",
+        zIndex: 0,
+        backgroundColor: "transparent",
+        color: "transparent",
+      },
+      onClick: () => {
+        loggerService.log("Toggle Play by vjs-toggle-playback");
+        togglePlay();
+      },
+      onTouchstart: (e) => {
+        e.preventDefault();
+        loggerService.log("Toggle Play Touch by vjs-toggle-playback");
+        togglePlay();
+      },
+    },
+    "",
+  );
+  render(toggleVNode, player.el());
 }
 </script>
-
-<style scoped></style>
+<style scoped>
+:deep(.vjs-big-play-button) {
+  z-index: 1;
+}
+</style>

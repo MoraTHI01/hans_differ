@@ -28,9 +28,9 @@ class ErrorResponse(BaseModel):
         return response.model_dump(), response.status
 
     @staticmethod
-    def create_custom(text):
+    def create_custom(text, status=HTTPStatus.INTERNAL_SERVER_ERROR):
         """Create general server error response with custom text"""
-        response = ErrorResponse(message=text)
+        response = ErrorResponse(status=status, message=text)
         return response.model_dump(), response.status
 
 

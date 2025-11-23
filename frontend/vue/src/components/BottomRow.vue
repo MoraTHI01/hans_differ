@@ -1,7 +1,7 @@
 <template>
   <!-- footer row -->
   <br /><br />
-  <footer class="row justify-content-center">
+  <footer class="row justify-content-center bottom-sticky">
     <div class="footer-content">
       <!-- column for left buttons -->
       <nav>
@@ -32,9 +32,9 @@
         <span v-if="ev.getEvalActive() === true" class="eval-text">Evaluation Id: {{ ev.getEvalId() }}</span>
       </nav>
     </div>
+    <ConsentBanner />
   </footer>
   <!-- header row end -->
-  <ConsentBanner />
 </template>
 
 <script setup lang="ts">
@@ -56,6 +56,13 @@ footer {
   bottom: 0 !important;
   position: sticky !important;
   z-index: 99999;
+}
+
+@media (max-width: 600px) {
+  footer {
+    position: relative !important;
+    top: 64vh;
+  }
 }
 
 .footer-content {

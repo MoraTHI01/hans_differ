@@ -36,4 +36,16 @@ class SetPageEvent {
   }
 }
 
-export {PlayEvent, PauseEvent, SetPositionEvent, SetPageEvent};
+class SelectMediaItemEvent {
+  uuid: string;
+  origin?: string;
+  index?: number;
+
+  constructor(uuid: string, origin?: string, index?: number) {
+    this.uuid = uuid;
+    this.origin = origin;
+    this.index = index;
+  }
+}
+
+export {PlayEvent, PauseEvent, SetPositionEvent, SetPageEvent, SelectMediaItemEvent};

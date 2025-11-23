@@ -1,9 +1,9 @@
 <template>
   <!-- header row -->
-  <header class="row justify-content-center">
-    <div class="row header-content">
+  <header class="row justify-content-center header-sticky">
+    <div class="header-content d-flex">
       <!-- column for left buttons -->
-      <div class="header-section">
+      <div class="header-section d-flex">
         <!-- videos button -->
         <ButtonLight src="/bootstrap-icons/play-btn.svg" route="home" :btntext="t('HeaderRow.media')" invert="0" />
         <!-- videos button end -->

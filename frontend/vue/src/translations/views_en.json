@@ -4,6 +4,10 @@
     "searchplaceholder": "Manage Announcements",
     "menutext": "Upload announcement"
   },
+  "ChannelView": {
+    "notauthorizedtitle": "Unauthorized!",
+    "notauthorizedtext": "You do not have any permissions to access this channel."
+  },
   "ChannelsView": {
     "searchplaceholder": "Search for channels",
     "menutext": "All channels"
@@ -65,6 +69,20 @@
   "SearchResultsView": {
     "searchplaceholder": "Search for everything"
   },
+  "StatisticsView": {
+    "searchplaceholder": "Search for everything",
+    "menutext": "Statistics",
+    "count_channels": "Number of channels",
+    "count_media": "Number of media",
+    "count_media_published": "Number of published media",
+    "count_media_listed": "Number of listed media",
+    "media_published": "Published media",
+    "media_listed": "Listed media",
+    "media_unpublished": "Unpublished media",
+    "global": "Global",
+    "institute": "Institute",
+    "account": "Current account"
+  },
   "SurveysView": {
     "searchplaceholder": "Manage Surveys",
     "menutext": "Upload Survey"
@@ -77,6 +95,9 @@
     "summary": "Full summary",
     "editInDe": "Edit german version",
     "editInEn": "Edit english version"
+  },
+  "UploadChannelView": {
+    "menutext": "Your Media"
   },
   "UploadOverviewView": {
     "menutext": "Your Media"

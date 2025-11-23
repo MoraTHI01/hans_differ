@@ -6,8 +6,8 @@
         <h5>{{ heading }}</h5>
       </div>
     </div>
-    <div class="col-13 survey-content">
-      <div class="list-container">
+    <div class="col-5 survey-content">
+      <div class="col list-container">
         <ul>
           <template v-for="item in surveys" :key="item.survey_title">
             <template v-if="item.survey_status === 'active' && item.survey_language === locale">
@@ -74,7 +74,7 @@ watch(locale, async (newText) => {
 
 <style scoped>
 .survey-container {
-  left: 4em;
+  margin-left: -5em;
   position: relative;
 }
 .survey-content {
@@ -85,15 +85,12 @@ watch(locale, async (newText) => {
 }
 
 .list-container {
-  max-height: 2.375em;
-  max-width: 16em;
   position: relative;
   display: flex;
   overflow-y: auto;
   border: var(--bs-border-width) solid var(--bs-border-color);
   border-radius: var(--bs-border-radius);
   margin-left: auto;
-  min-width: 14em;
 }
 
 .list-container li {

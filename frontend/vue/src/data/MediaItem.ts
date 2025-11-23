@@ -1,4 +1,5 @@
 import type {SurveyItem} from "@/data/SurveyItem";
+import type {LmsGatedAccessDetails} from "@/data/Protection";
 
 class AirflowInfo {
   constructor(init?: Partial<AirflowInfo>) {
@@ -130,6 +131,8 @@ class MediaItem {
   slides_images_meta?: string;
   keywords_result?: string;
   slides_trie?: string;
+  lms_gated_access?: boolean;
+  lms_gated_access_details: LmsGatedAccessDetails;
 
   private toObject() {
     return {

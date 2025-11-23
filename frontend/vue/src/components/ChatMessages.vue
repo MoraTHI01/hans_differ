@@ -46,6 +46,8 @@
                   message.context,
                   message.useContextAndCite,
                   message.snapshot,
+                  message.mediaContextUuids,
+                  message.documentContextUuids,
                 )
               "
             ></div>
@@ -64,6 +66,8 @@
                     message.context,
                     message.useContextAndCite,
                     message.snapshot,
+                    message.mediaContextUuids,
+                    message.documentContextUuids,
                   )
                 "
               ></div>
@@ -103,7 +107,10 @@
                 :index="index"
                 :context="message.context"
                 :context-uuid="message.contextUuid"
-                :videoUuid="props.video.uuid"
+                :itemUuid="props.uuid"
+                :channelmode="props.channelmode"
+                :mediaContextUuids="message.mediaContextUuids"
+                :documentContextUuids="message.documentContextUuids"
               ></ChatContextWindow>
               <ChatFeedback
                 index-suffix="pMessageContainer"
@@ -133,6 +140,8 @@
                   message.context,
                   message.useContextAndCite,
                   message.snapshot,
+                  message.mediaContextUuids,
+                  message.documentContextUuids,
                 )
               "
             ></div>
@@ -151,6 +160,8 @@
                     message.context,
                     message.useContextAndCite,
                     message.snapshot,
+                    message.mediaContextUuids,
+                    message.documentContextUuids,
                   )
                 "
               ></div>
@@ -190,7 +201,10 @@
                 :index="index"
                 :context="message.context"
                 :context-uuid="message.contextUuid"
-                :videoUuid="props.video.uuid"
+                :itemUuid="props.uuid"
+                :channelmode="props.channelmode"
+                :mediaContextUuids="message.mediaContextUuids"
+                :documentContextUuids="message.documentContextUuids"
               ></ChatContextWindow>
               <ChatFeedback
                 index-suffix="pMessageContainerT"
@@ -222,6 +236,8 @@
                   message.context,
                   message.useContextAndCite,
                   message.snapshot,
+                  message.mediaContextUuids,
+                  message.documentContextUuids,
                 )
               "
             ></div>
@@ -248,7 +264,10 @@
                 :index="index"
                 :context="message.context"
                 :context-uuid="message.contextUuid"
-                :videoUuid="props.video.uuid"
+                :itemUuid="props.uuid"
+                :channelmode="props.channelmode"
+                :mediaContextUuids="message.mediaContextUuids"
+                :documentContextUuids="message.documentContextUuids"
               ></ChatContextWindow>
               <ChatFeedback
                 index-suffix="pMessageContainerS"
@@ -283,21 +302,29 @@ import {useMessageStore} from "@/stores/message";
 import {useMediaStore} from "@/stores/media";
 import {LoggerService} from "@/common/loggerService";
 import type {MediaItem} from "@/data/MediaItem.js";
+import type {ChannelItem} from "@/data/ChannelItem";
 import ChatContextWindow from "@/components/ChatContextWindow.vue";
 import ChatFeedback from "@/components/ChatFeedback.vue";
 import type {MessageContent} from "@/data/Message";
 import {apiClient} from "@/common/apiClient";
-import {SetPageEvent, SetPositionEvent} from "@/common/events";
+import {SetPageEvent, SetPositionEvent, SelectMediaItemEvent} from "@/common/events";
 
 const loggerService = new LoggerService();
 
 const {t, locale} = useI18n({useScope: "global"});
+
 const props = defineProps<{
-  video: MediaItem;
+  uuid: string;
+  channelmode: boolean;
 }>();
 
 const showInfo = ref(null);
 const eventBus = inject("eventBus"); // Inject `eventBus`
+
+const selectMediaItem = (uuid) => {
+  loggerService.log(`ChatMessages:selectMediaItem: ${uuid}`);
+  eventBus.emit("selectMediaItemEvent", new SelectMediaItemEvent(uuid, "popover", 0));
+};
 
 const skipVideoToPosition = (position) => {
   loggerService.log(`ChatMessages:skipVideoToPosition: ${position}`);
@@ -370,7 +397,7 @@ if (!messageStore.isInitialized()) {
   messageStore.loadMessages();
 }
 
-const messages = computed(() => messageStore.getMessages(props.video.uuid));
+const messages = computed(() => messageStore.getMessages(props.uuid));
 const chatScrollContainer = ref<HTMLElement | null>(null);
 
 // Watch for changes in messages and scroll to the bottom
@@ -418,8 +445,12 @@ const loadPopovers = async () => {
       popoverTriggerEl.addEventListener("click", (event) => {
         skipVideoToPosition(Number(interval));
       });
+    } else if (popoverTriggerEl.hasAttribute("data-media-uuid")) {
+      const media_uuid = popoverTriggerEl.getAttribute("data-media-uuid");
+      popoverTriggerEl.addEventListener("click", (event) => {
+        selectMediaItem(media_uuid);
+      });
     }
-
     // Regular expression to match the src value in an img tag
     const srcRegex = /src="(.*?)"/;
 
@@ -485,6 +516,8 @@ const renderBotContent = (
   context: string,
   modeUseContextAndCite: boolean,
   snapshot: string,
+  mediaContextUuids: string[],
+  documentContextUuids: string[],
 ) => {
   loggerService.log("ChatMessages:renderBotContent");
   // https://marked.js.org/
@@ -528,30 +561,55 @@ const renderBotContent = (
           const hoverContextTextEnOrig = hoverContext.split("\\n").join("\n");
           let hoverContextText = hoverContextTextEnOrig;
           if (citationIndex < 100) {
-            // Cite transcript
-            let interval = mediaStore.getIntervalFromCurrentTranscriptText("de", hoverContextTextEnOrig);
-            if (messageContent.language === "de") {
-              interval = mediaStore.getIntervalFromCurrentTranscriptText("en", hoverContextTextEnOrig);
-              hoverContextText = mediaStore.getCurrentTranscriptTextInInterval("de", interval);
-            }
-            const hoverElement = `
-            <a href="#"
-              class="reference-link"
-              data-bs-trigger="focus"
-              data-bs-toggle="popover"
-              data-interval="${interval[0]}"
-              title="${t("ChatInput.citationPopoverTitle")}"
-              data-bs-content='${hoverContextText}'>
-              ${citation}
-            </a>`;
-            if (!replaceList.has(citation)) {
-              replaceList.set(citation, hoverElement);
+            if (props.channelmode === false) {
+              // Cite transcript
+              let interval = mediaStore.getIntervalFromCurrentTranscriptText("de", hoverContextTextEnOrig);
+              if (messageContent.language === "de") {
+                interval = mediaStore.getIntervalFromCurrentTranscriptText("en", hoverContextTextEnOrig);
+                hoverContextText = mediaStore.getCurrentTranscriptTextInInterval("de", interval);
+              }
+              const hoverElement = `
+              <a href="#"
+                class="reference-link"
+                data-bs-trigger="focus"
+                data-bs-toggle="popover"
+                data-interval="${interval[0]}"
+                title="${t("ChatInput.citationPopoverTitle")}"
+                data-bs-content='${hoverContextText}'>
+                ${citation}
+              </a>`;
+              if (!replaceList.has(citation)) {
+                replaceList.set(citation, hoverElement);
+              }
+            } else {
+              // TODO: cite media item
+              if (mediaContextUuids !== undefined && mediaContextUuids.length > 0) {
+                loggerService.log("########");
+                const media_uuid = mediaContextUuids[citationIndex];
+                loggerService.log(media_uuid);
+                const media_item = mediaStore.getMediaItemByUuid(media_uuid);
+                loggerService.log("MEDIA ITEM");
+                loggerService.log(media_item.title);
+                const hoverElement = `
+                <a href="#"
+                  class="reference-link"
+                  data-bs-trigger="focus"
+                  data-bs-toggle="popover"
+                  data-media-uuid="${media_uuid}"
+                  title="${t("ChatInput.citationPopoverChannelMediaTitle")}"
+                  data-bs-content='${media_item.title}'>
+                  ${citation}
+                </a>`;
+                if (!replaceList.has(citation)) {
+                  replaceList.set(citation, hoverElement);
+                }
+              }
             }
           } else if (citationIndex > 99 && citationIndex < 999) {
             // Cite slides
             const slide_number = (citationIndex - 100).toString();
             const slide_index = (citationIndex - 101).toString();
-            const uri = mediaStore.getSlidesImagesFolderUrnByUuid(props.video.uuid) + "/" + slide_number + ".png";
+            const uri = mediaStore.getSlidesImagesFolderUrnByUuid(props.uuid) + "/" + slide_number + ".png";
             loggerService.log(`ChatMessages:SlideContextUrn: ${uri}`);
             const hoverElement = `
             <a href="#"

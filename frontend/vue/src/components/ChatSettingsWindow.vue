@@ -23,7 +23,7 @@
         <div class="modal-body">
           <!-- Bootstrap Tabs for switching between contextList and contextListtranslation -->
           <ul class="nav nav-tabs" id="mySettingsTab" role="tablist">
-            <li class="nav-item" role="presentation">
+            <li v-if="!props.channelmode" class="nav-item" role="presentation">
               <button
                 class="nav-link active"
                 id="llm-settings-tab"
@@ -37,7 +37,7 @@
                 {{ t("ChatSettingsWindow.context") }}
               </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li v-if="!props.channelmode" class="nav-item" role="presentation">
               <button
                 class="nav-link"
                 id="vllm-settings-tab"
@@ -49,6 +49,34 @@
                 aria-selected="false"
               >
                 {{ t("ChatSettingsWindow.vision") }}
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="rllm-settings-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#rllm-settings"
+                type="button"
+                role="tab"
+                aria-controls="rllm-settings"
+                aria-selected="false"
+              >
+                {{ t("ChatSettingsWindow.reasoning") }}
+              </button>
+            </li>
+            <li v-if="props.channelmode" class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="channel-settings-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#channel-settings"
+                type="button"
+                role="tab"
+                aria-controls="channel-settings"
+                aria-selected="true"
+              >
+                {{ t("ChatSettingsWindow.search") }}
               </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -83,7 +111,13 @@
           <!-- Tab Content -->
           <div class="tab-content mt-3" id="mySettingsTabContent">
             <!-- First Tab: Context List -->
-            <div class="tab-pane fade show active" id="llm-settings" role="tabpanel" aria-labelledby="llm-settings-tab">
+            <div
+              v-if="!props.channelmode"
+              class="tab-pane fade show active"
+              id="llm-settings"
+              role="tabpanel"
+              aria-labelledby="llm-settings-tab"
+            >
               <div class="mt-3 general-container">
                 <textarea
                   id="descriptionGeneral"
@@ -121,7 +155,7 @@
                   <Switch
                     v-model="chatStore.switchSelectedContext"
                     :label="t('ChatSettingsWindow.modeSelectedContext')"
-                    id="switchCite"
+                    id="switchSelectedContext"
                     :isEnabled="!chatStore.switchContext"
                     :description="t('ChatSettingsWindow.switchSelectedContextDescription')"
                     trackingMessageOn="Use selected media context and cite for chat messages"
@@ -130,7 +164,13 @@
                 </li>
               </ol>
             </div>
-            <div class="tab-pane fade" id="vllm-settings" role="tabpanel" aria-labelledby="vllm-settings-tab">
+            <div
+              v-if="!props.channelmode"
+              class="tab-pane fade"
+              id="vllm-settings"
+              role="tabpanel"
+              aria-labelledby="vllm-settings-tab"
+            >
               <ol class="list-group list-group-flush">
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   <Switch
@@ -163,6 +203,63 @@
                     :description="t('ChatSettingsWindow.switchVisionSnapshotDescription')"
                     trackingMessageOn="Use video snapshot image as context with vllm"
                     trackingMessageOff="Do not use video snapshot image as context with vllm"
+                  />
+                </li>
+              </ol>
+            </div>
+            <div class="tab-pane fade" id="rllm-settings" role="tabpanel" aria-labelledby="rllm-settings-tab">
+              <ol class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <Switch
+                    v-model="chatStore.switchReasoning"
+                    :label="t('ChatSettingsWindow.modeReasoning')"
+                    id="switchReasoning"
+                    :isEnabled="true"
+                    :description="t('ChatSettingsWindow.switchReasoningDescription')"
+                    trackingMessageOn="Use reasoning llm"
+                    trackingMessageOff="Do not use reasoning llm"
+                  />
+                </li>
+              </ol>
+            </div>
+            <div
+              v-if="props.channelmode"
+              class="tab-pane fade show active"
+              id="channel-settings"
+              role="tabpanel"
+              aria-labelledby="channel-settings-tab"
+            >
+              <div class="mt-3 general-container">
+                <textarea
+                  id="descriptionGeneral"
+                  class="form-control general-description"
+                  rows="4"
+                  :value="t('ChatSettingsWindow.generalDescriptionChannel')"
+                  disabled
+                  readonly
+                ></textarea>
+              </div>
+              <ol class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <Switch
+                    v-model="chatStore.switchChannelContext"
+                    :label="t('ChatSettingsWindow.modeChannelContext')"
+                    id="switchChannelContext"
+                    :isEnabled="true"
+                    :description="t('ChatSettingsWindow.switchChannelContextDescription')"
+                    trackingMessageOn="Use channel context for chat messages"
+                    trackingMessageOff="Do not use channel context for chat messages"
+                  />
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <Switch
+                    v-model="chatStore.switchChannelCitation"
+                    :label="t('ChatSettingsWindow.modeChannelCitation')"
+                    id="switchChannelCite"
+                    :isEnabled="chatStore.switchChannelContext"
+                    :description="t('ChatSettingsWindow.switchChannelCitationDescription')"
+                    trackingMessageOn="Use channel context and cite for chat messages"
+                    trackingMessageOff="Do not use channel context and cite for chat messages"
                   />
                 </li>
               </ol>
@@ -236,6 +333,7 @@ const chatStore = useChatStore();
 
 const props = defineProps<{
   disableComp: boolean;
+  channelmode: boolean;
 }>();
 
 const mySettingsModal = ref(null);

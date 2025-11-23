@@ -6,9 +6,14 @@ __license__ = "Apache 2.0"
 __version__ = "1.0.1"
 __status__ = "Draft"
 
+import sys
 import logging
 from flask_cors import CORS
 from flask_openapi3 import Info, Tag, OpenAPI
+
+from connectors.config import get_frontend_api_port
+from connectors.config import get_frontend_api_host
+from connectors.config import get_frontend_api_production_mode
 
 from api.auth import auth_api_bp
 from api.channels import channel_api_bp
@@ -19,11 +24,12 @@ from api.query import query_api_bp
 from api.upload import upload_api_bp
 from api.survey import survey_api_bp
 from api.announcement import announcement_api_bp
+from api.airflow_status import airflow_status_api_bp
+from api.metadata import metadata_bp
+from api.statistics import statistics_api_bp
+from api.airflow_dag_delete import dag_delete_api_bp
 
 from api.modules.auth_config import configure_flask_multipass
-from api.modules.config import get_frontend_api_port
-from api.modules.config import get_frontend_api_host
-from api.modules.config import get_frontend_api_production_mode
 from api.modules.responses import get_responses, TextResponse
 from api.modules.security import SecurityConfiguration
 from api.upload_flow import upload_flow_api_bp
@@ -65,6 +71,10 @@ def create_app():
     app.register_api(survey_api_bp)
     app.register_api(upload_flow_api_bp)
     app.register_api(announcement_api_bp)
+    app.register_api(airflow_status_api_bp)
+    app.register_api(dag_delete_api_bp, url_prefix='/airflow_dag_delete')
+    app.register_api(metadata_bp)
+    app.register_api(statistics_api_bp)
 
     # enable CORS
     CORS(app, resources={r"/*": {"origins": "*"}})

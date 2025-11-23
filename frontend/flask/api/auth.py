@@ -10,17 +10,24 @@ __status__ = "Draft"
 from datetime import timedelta
 from urllib.parse import quote, unquote
 from flask import jsonify, request, make_response, url_for, redirect, session
+import os
+import hmac
+import hashlib
+import time
+import jwt
+import json
 from flask_openapi3 import APIBlueprint
 from flask_cors import cross_origin
 
 from flask_multipass import Multipass
 from flask_multipass.providers.static import StaticAuthProvider, StaticIdentityProvider
 
-from api.modules.config import get_frontend_protocol, get_frontend_host_url
 from api.modules.responses import AuthenticationRequired, UnauthorizedResponse
 from api.modules.responses import ErrorResponse, RefreshAuthenticationRequired
 from api.modules.security import SecurityConfiguration, SecurityMetaData
-from api.modules.connectors.connector_provider import connector_provider
+
+from connectors.connector_provider import connector_provider
+from connectors.config import get_frontend_protocol, get_frontend_host_url
 
 # Use custom authlib provider for openid connect
 from api.modules.oidc import OidcAuthProvider, OidcIdentityProvider
@@ -122,15 +129,16 @@ class AuthBlueprint(APIBlueprint):
 
     def identity_handler(self, identity_info):
         """Handle identity request"""
+        # print("Identity Data")
         if identity_info.provider.name == self.oidc_identity_provider_id:
             identity_data = identity_info.provider.get_identity(identity_info.identifier)
-            # print("OIDC Identity Data")
             # print(identity_data)
             identity = {
                 "id": identity_data["subject-id"],
                 "username": quote(identity_data["username"]),
                 "firstName": quote(identity_data["givenName"]),
                 "lastName": quote(identity_data["sn"]),
+                "mail": quote(identity_data["mail"]),
                 "preferedLanguage": quote(identity_data["preferedLanguage"]),
                 "faculty": quote(identity_data["dfnEduPersonFieldOfStudyString"]),
                 "university": quote(identity_data["o"]),
@@ -151,12 +159,14 @@ class AuthBlueprint(APIBlueprint):
             # mongo_connector.disconnect()
             return redirect(target_url)
         else:
+            # print(identity_info.data)
             groups = identity_info.provider.get_identity_groups(identity_info.identifier)
             identity = {
                 "id": identity_info.data["subject-id"],
                 "username": quote(identity_info.identifier),
                 "firstName": quote(identity_info.data["givenName"]),
                 "lastName": quote(identity_info.data["sn"]),
+                "mail": quote(identity_info.data["mail"]),
                 "preferedLanguage": quote(identity_info.data["preferedLanguage"]),
                 "faculty": quote(identity_info.data["dfnEduPersonFieldOfStudyString"]),
                 "university": quote(identity_info.data["o"]),
@@ -185,6 +195,145 @@ def login():
     return auth_api_bp.multipass.handle_login_form(
         auth_api_bp.multipass.auth_providers[auth_api_bp.get_current_auth_provider_id()], data
     )
+
+
+@auth_api_bp.route("/login/moodle", methods=["POST"])
+def login_moodle():
+    """Login using a secure token from Moodle and authorize against a saved dictionary."""
+    data = request.get_json()
+    # if not data or 'payload' not in data or 'signature' not in data:
+    if not data or 'moodleToken' not in data:
+        return ErrorResponse.create_custom("Moodle token is missing.")
+
+    moodle_token = data['moodleToken']
+    
+    shared_secret = "2208195ef19556472f01a5ce09ac5342fae0018a90dd4aba40983528dbf52068".encode('utf-8')
+    
+    try:
+        decoded_payload = jwt.decode(moodle_token, shared_secret, algorithms=["HS256"])
+        # print("Decoded Moodle payload:", decoded_payload)
+        moodle_username = decoded_payload.get("email")
+
+    except jwt.ExpiredSignatureError:
+        return ErrorResponse.create_custom("Moodle token has expired.")
+    except jwt.InvalidTokenError:
+        return ErrorResponse.create_custom("Invalid Moodle token.")
+
+    try:
+        file_path = os.path.join(os.path.dirname(__file__), 'auth', 'static_auth.json')
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # print('data from static_auth.json:', data)
+
+        user_list = data.get('user', [])
+
+        saved_user_data = None  
+        for user_profile in user_list:
+            if user_profile.get('username') == moodle_username:
+                saved_user_data = user_profile 
+                break 
+
+        if saved_user_data is None:
+            return ErrorResponse.create_custom("User not authorized for this platform.")
+
+    except FileNotFoundError:
+        print(f"FATAL ERROR: static_auth.json not found at {file_path}")
+        return ErrorResponse.create_custom("Server configuration error")
+
+
+    # User was found! Creating the identity using the rich data from the dictionary. 
+    # print('saved_user_data:', saved_user_data)
+    identity = {
+        "id": saved_user_data["subject-id"],
+        "username": quote(saved_user_data["mail"]),
+        "firstName": quote(saved_user_data["givenName"]),
+        "lastName": quote(saved_user_data["sn"]),
+        "mail": quote(saved_user_data["mail"]),
+        "role": quote(saved_user_data["group"]),
+        "idp": "simple_identity_provider", 
+        "preferedLanguage": quote(saved_user_data["preferedLanguage"]),
+        "faculty": quote(saved_user_data["dfnEduPersonFieldOfStudyString"]),
+        "university": quote(saved_user_data["o"]),
+        "course": quote(saved_user_data["courseAcronymId"]),
+        "id_token": "0815"
+    }
+
+    # Create application's own JWTs
+    (access_token, refresh_token) = auth_api_bp.create_credentials_for_identity(identity)
+    
+    # Send the tokens back to the plugin
+    return jsonify(access_token=access_token, refresh_token=refresh_token)
+
+# @auth_api_bp.route("/login/moodle", methods=["POST"])
+# def login_moodle():
+#     """Login using a secure token from a Moodle plugin."""
+
+#     # Get the data sent from the Moodle plugin
+#     data = request.get_json()
+#     if not data or 'payload' not in data or 'signature' not in data:
+#         return ErrorResponse.create_custom("Invalid Moodle token request"), 400 
+
+#     payload_str = data['payload']
+#     moodle_signature = data['signature']
+    
+#     # Verify the signature 
+#     # shared_secret = os.environ.get('MOODLE_SHARED_SECRET').encode('utf-8')
+#     shared_secret = "2208195ef19556472f01a5ce09ac5342fae0018a90dd4aba40983528dbf52068".encode('utf-8')
+    
+#     expected_signature = hmac.new(shared_secret, payload_str.encode('utf-8'), hashlib.sha256).hexdigest()
+    
+#     if not hmac.compare_digest(expected_signature, moodle_signature):
+#         return UnauthorizedResponse.create() 
+    
+#     print("Moodle token signature verified.")
+#     # Signature is valid! Now, process the payload.
+#     import json
+#     user_data = json.loads(payload_str)
+    
+#     # Optional but recommended: Check if the token has expired
+#     if 'exp' in user_data and user_data['exp'] < time.time():
+#         return ErrorResponse.create_custom("Moodle token has expired"), 401
+    
+#     # Create the standard user identity object
+#     # We use unquote(' ') for any potentially empty fields from Moodle
+#     print('checkpoint1')
+#     identity = {
+#         "id": user_data.get("id"), #"19661c01-d8c8-4a24-8071-04da5f738433@testscope.dfn.de",#user_data.get("id"),
+#         # "username": quote(user_data.get("username", "")),
+#         "username": "raviteja.boddu@thi.de",
+#         "firstName": quote(user_data.get("firstName", "")),
+#         "lastName": quote(user_data.get("lastName", "")),
+#         "mail": quote(user_data.get("email", "")),
+#         "role": quote("admin"),
+#         "idp": "simple_identity_provider",#"moodle",
+#         "preferedLanguage": quote("de"),
+#         "faculty": quote("Informatik"),
+#         "university": quote("Technische Hochschule Ingolstadt"),
+#         "course": quote("*"),
+#         "id_token": "0815" #moodle-token
+#     }
+
+#     #  identity = {
+#     #             "id": identity_info.data["subject-id"],
+#     #             "username": quote(identity_info.identifier),
+#     #             "firstName": quote(identity_info.data["givenName"]),
+#     #             "lastName": quote(identity_info.data["sn"]),
+#     #             "mail": quote(identity_info.data["mail"]),
+#     #             "preferedLanguage": quote(identity_info.data["preferedLanguage"]),
+#     #             "faculty": quote(identity_info.data["dfnEduPersonFieldOfStudyString"]),
+#     #             "university": quote(identity_info.data["o"]),
+#     #             "course": quote(identity_info.data["courseAcronymId"]),
+#     #             "role": quote(str(groups.pop().name)),
+#     #             "idp": self.simple_identity_provider_id,
+#     #             "id_token": "0815",
+#     #         }
+    
+#     # Create application's own JWTs
+#     (access_token, refresh_token) = auth_api_bp.create_credentials_for_identity(identity)
+    
+#     # Send the tokens back to the plugin
+#     return jsonify(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_api_bp.route("/login/", methods=["GET", "POST"])
@@ -289,3 +438,15 @@ def refresh():
         return jsonify(access_token=a_token)  # , refresh_token=r_token)
     except:
         return ErrorResponse.create_custom("Error refreshing access token")
+
+@auth_api_bp.route("/user_info", methods=["GET"])
+@jwt_required()
+def user_info():
+    """User info endpoint"""
+    print("User info endpoint called!")
+    try:
+        identity = get_jwt_identity()
+        return jsonify(identity)
+    except Exception as e:
+        print(f"Error getting user info: {str(e)}")
+        return ErrorResponse.create_custom("Error getting user info")

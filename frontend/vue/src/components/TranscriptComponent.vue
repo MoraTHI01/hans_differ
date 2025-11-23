@@ -377,7 +377,7 @@ const increaseFontSize = () => {
 .transcript {
   /* Relative positioning for offsetTop calculations */
   position: relative;
-  height: 200px;
+  height: 90%;
   padding: 10px;
   overflow-y: scroll;
   word-break: break-word;

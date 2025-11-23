@@ -4,11 +4,14 @@
     <div class="card border-0 mb-3">
       <!-- channel thumbnail -->
       <router-link
-        :to="{name: 'SearchResults', query: {q: channel.tags, f: ['tags']}}"
+        :to="{name: 'Channel', query: {uuid: channel.uuid}}"
         @click="matomo_clicktracking('click_channelcard', channel.tags?.toString())"
         style="text-decoration: none"
       >
         <div class="channel-container">
+          <div v-if="channel.lms_gated_access === true" class="restricted-container">
+            <img src="/bootstrap-icons/shield-lock-fill.svg" alt="api-btn" class="img-fluid" />
+          </div>
           <span class="course-acronym">{{ channel.course_acronym }}</span>
         </div>
       </router-link>
@@ -27,8 +30,8 @@
           -
           <router-link
             class="link"
-            :to="{name: 'SearchResults', query: {q: [channel.course_acronym], f: ['course_acronym']}}"
-            @click="matomo_clicktracking('click_channelcard_search_course_acronym', channel.course_acronym)"
+            :to="{name: 'Channel', query: {uuid: channel.uuid}}"
+            @click="matomo_clicktracking('click_channelcard_course_acronym', channel.course_acronym)"
           >
             {{ channel.course }}
           </router-link>
@@ -125,6 +128,10 @@ loggerService.log(props.channel);
 
 .link:hover {
   opacity: 0.5;
+}
+
+.restricted-container {
+  padding-right: 0.5em;
 }
 
 @media (max-aspect-ratio: 3/4) {

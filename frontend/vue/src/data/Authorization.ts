@@ -2,7 +2,9 @@
  * A logged in User with a name, preferred language, university, faculty and role
  */
 class User {
+  id: string;
   username: string;
+  mail: string;
   firstName: string;
   lastName: string;
   preferedLanguage: string;
@@ -11,7 +13,9 @@ class User {
   role: string;
 
   constructor(
+    id: string,
     username: string,
+    mail: string,
     firstName: string,
     lastName: string,
     preferedLanguage: string,
@@ -19,7 +23,9 @@ class User {
     faculty: string,
     role: string,
   ) {
+    this.id = id;
     this.username = username;
+    this.mail = mail;
     this.firstName = firstName;
     this.lastName = lastName;
     this.preferedLanguage = preferedLanguage;

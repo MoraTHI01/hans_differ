@@ -10,7 +10,7 @@
             {{ t("QuestionnaireStatic.topic") }} {{ currentQuestionnaireItem.result_index + 1 }}
           </p>
         </div>
-        <div class="slide-content">
+        <div class="questionnaire-element">
           <QuestionnaireContent
             id="questionnaireContentStatic"
             class="static-questionnaire-content"
@@ -49,6 +49,7 @@ const props = defineProps<{
   video: MediaItem;
 }>();
 
+const loaded = ref(false);
 const isActive = ref(false);
 const mediaStore = useMediaStore();
 const qStore = useQuestionStore();
@@ -123,8 +124,9 @@ const handleInterval = async (positionInSec: number) => {
 };
 
 onMounted(async (): Promise<T> => {
+  loaded.value = false;
   questionnaireResults.value = await mediaStore.loadQuestionnaire(props.video?.uuid);
-  loadCurrentQuestionnaireItemByPosition(currentPosition.value);
+
   eventBus.on("setPositionEvent", (event: SetPositionEvent) => {
     if (event !== undefined && event.position !== undefined) {
       handleInterval(event.position);
@@ -136,6 +138,7 @@ onMounted(async (): Promise<T> => {
       handleInterval(position);
     }
   });
+  loaded.value = true;
 });
 
 const nextSlide = () => {
@@ -173,6 +176,10 @@ const reload = () => {
 // Watch the locale to register for language changes and switch summary dep. on locale
 watch(locale, async (newText) => {
   reload();
+});
+
+watch(loaded, () => {
+  loadCurrentQuestionnaireItemByPosition(currentPosition.value);
 });
 
 defineExpose({setActive, reload});
@@ -214,7 +221,7 @@ defineExpose({setActive, reload});
   grid-column: 1;
 }
 
-.slide-content {
+.questionnaire-element {
   justify-self: center;
   grid-column: 2;
   padding: 1em;
