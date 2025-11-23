@@ -15,9 +15,6 @@ from urllib.request import urlopen
 from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
 
 def create_local_search_document(
     asr_de_data,
@@ -55,7 +52,7 @@ def create_local_search_document(
     from collections import Counter
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
@@ -79,7 +76,7 @@ def create_local_search_document(
             return current
 
         def insert_word(self, word: str, index: int, interval: [int, int]) -> dict:
-            node = self._insert(word=word)
+            node = self._insert(word=word.lower())
 
             if "occurences" not in node:
                 node["occurences"] = []
@@ -132,20 +129,20 @@ def create_local_search_document(
     trie_en = Trie()
 
     for sentence in transcript_de_json["result"]:
-        for word in sentence["words_formatted"]:
+        for word in sentence["words"]:
 
             if not word["word"]:
                 continue
 
-            trie_de.insert_word(word=word["word"].lower(), index=word["index"], interval=word["interval"])
+            trie_de.insert_word(word=word["word"], index=word["index"], interval=word["interval"])
 
     for sentence in transcript_en_json["result"]:
-        for word in sentence["words_formatted"]:
+        for word in sentence["words"]:
 
             if not word["word"]:
                 continue
 
-            trie_en.insert_word(word=word["word"].lower(), index=word["index"], interval=word["interval"])
+            trie_en.insert_word(word=word["word"], index=word["index"], interval=word["interval"])
 
     # Store data
     sys.setrecursionlimit(99000)  # Increase recursion depth
@@ -231,8 +228,9 @@ def op_create_local_search_document(
             local_search_data_en,
             local_search_en_urn_key,
         ],
-        # requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", 'nltk'],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        # requirements=[ "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport", 'nltk'],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

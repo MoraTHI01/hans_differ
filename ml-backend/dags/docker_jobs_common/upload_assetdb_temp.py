@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 from io import BytesIO
-from modules.connectors.connector_provider import connector_provider
+from connectors.connector_provider import connector_provider
 
 parser = argparse.ArgumentParser(description="Helper to upload multiple files to assetdb-temp")
 parser.add_argument("config", type=str, help="Configuration to establish minio connection")

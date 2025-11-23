@@ -18,7 +18,11 @@ from airflow.operators.empty import EmptyOperator
 
 
 def search_data_preparation(
-    parent_dag, dag_group_name_download_media_files, dag_group_name_asr_engine, dag_group_name_summarization
+    parent_dag,
+    dag_group_name_download_media_files,
+    dag_group_name_asr_engine,
+    dag_group_name_summarization,
+    config: dict,
 ):
     """
     Generate a search_data_preparation TaskGroup to be used in a DAG.
@@ -28,10 +32,14 @@ def search_data_preparation(
     :param str dag_group_name_download_media_files: Task group name for download_media_files task group
     :param str dag_group_name_asr_engine: Task group name for asr_engine task group
     :param str dag_group_name_summarization: Task group name for summarization task group
+    :param str config: Configuration of docker operator (e.g. gpu usage)
 
     :return: TaskGroup to use in a DAG
     :rtype: airflow.utils.task_group.TaskGroup
     """
+    llm_configs = {}
+    if "llm_configs" in config:
+        llm_configs = config["llm_configs"]
 
     with TaskGroup("search_data_preparation") as task_group:
         # XCOM injection helper
@@ -120,6 +128,7 @@ def search_data_preparation(
                 "search_data_vectors_urn",
             ),
             opensearch_urn_key="search_data_vectors_urn",
+            llm_configs=llm_configs,
         )
 
         # Create url "search_data_vectors_url" using previous urn "search_data_vectors_urn" on assetdb-temp for download
@@ -174,6 +183,7 @@ def search_data_preparation(
                 "search_summary_data_vector_urn",
             ),
             opensearch_urn_key="search_summary_data_vector_urn",
+            llm_configs=llm_configs,
         )
 
         # Create url "search_summary_data_vector_url" using previous urn "search_summary_data_vector_urn" on assetdb-temp for download
@@ -240,13 +250,13 @@ def _local_search_data_preparation(parent_dag, dag_group_name_download_media_fil
             dag_id=parent_dag.dag_id,
             task_id_suffix="create_local_search_document",
             asr_de_data=inject_xcom_data(
-                parent_dag.dag_id, dag_group_name_asr_engine, "op_create_new_urn_on_assetdbtemp", "transcript_de_urn"
+                parent_dag.dag_id, dag_group_name_asr_engine, "op_create_new_urn_on_assetdbtemp", "asr_result_de_urn"
             ),
-            asr_de_data_key="transcript_de_urn",
+            asr_de_data_key="asr_result_de_urn",
             asr_en_data=inject_xcom_data(
-                parent_dag.dag_id, dag_group_name_asr_engine, "op_create_new_urn_on_assetdbtemp", "transcript_en_urn"
+                parent_dag.dag_id, dag_group_name_asr_engine, "op_create_new_urn_on_assetdbtemp", "asr_result_en_urn"
             ),
-            asr_en_data_key="transcript_en_urn",
+            asr_en_data_key="asr_result_en_urn",
             asr_locale_data=inject_xcom_data(
                 parent_dag.dag_id, dag_group_name_asr_engine, "op_get_single_data_from_xcom_json", "asr_locale"
             ),

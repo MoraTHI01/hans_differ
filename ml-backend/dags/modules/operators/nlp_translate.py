@@ -18,120 +18,8 @@ import json
 import re
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
-def gen_payload(prompt):
-    """
-    Generate payload for request to translation service
-    :param str prompt: the user message (prompt)
-    :returns dict payload
-    """
-    return {"inputs": prompt, "parameters": {"max_new_tokens": 512}}
-
-
-def split_text_into_chunks(text, sentences_per_chunk=4):
-    """
-    Split text into sentence chunks
-    """
-    import re
-
-    # List of known abbreviations with periods
-    abbreviations = [
-        "Mr.",
-        "Mrs.",
-        "Ms.",
-        "Dr.",
-        "Prof.",
-        "Capt.",
-        "Col.",
-        "Gen.",
-        "Rev.",
-        "Lt.",
-        "Sgt.",
-        "St.",
-        "Jr.",
-        "Sr.",
-        "Co.",
-        "Inc.",
-        "Ltd.",
-        "etc.",
-        "Hr.",
-        "Fr.",
-        "Herr",
-        "Frau",
-        "u.a.",
-        "z.B.",
-        "d.h.",
-        "i.d.R.",
-        "i.e.",
-        "u.s.w.",
-    ]
-    # Define a regular expression pattern to match sentence endings
-    sentence_endings = re.compile(r"([.!?])\s+")
-    # Initialize an empty list to store sentences
-    sentences = []
-    start = 0
-    # Iterate over the text to find sentence-ending punctuation
-    for match in sentence_endings.finditer(text):
-        # Extract the sentence-ending character and following space
-        end_punct = match.group(1)
-        next_char_index = match.end()
-        # Get the potential sentence
-        sentence = text[start:next_char_index].strip()
-        # Check if the preceding token is an abbreviation
-        if any(sentence.endswith(abbrev) for abbrev in abbreviations):
-            continue
-        # Otherwise, consider this a sentence boundary
-        sentences.append(sentence)
-        start = next_char_index
-    # Add any remaining text as the last sentence
-    remaining_text = text[start:].strip()
-    if remaining_text:
-        sentences.append(remaining_text)
-    # Initialize the list to store chunks
-    chunks = []
-    # Group sentences into chunks of the specified number of sentences
-    for i in range(0, len(sentences), sentences_per_chunk):
-        chunk = " ".join(sentences[i : i + sentences_per_chunk])
-        chunks.append(chunk)
-    return chunks
-
-
-def translate_iter(headers, url, content, source_language, target_language):
-    """
-    Translate long texts
-    """
-    import requests
-
-    partial_message = ""
-    text_arr = split_text_into_chunks(content.strip(), 4)
-    for idx, sentence in enumerate(text_arr):
-        if len(sentence) > 0:
-            prompt = "<2" + target_language + "> " + sentence
-            payload = gen_payload(prompt)
-            response = requests.post(url, data=json.dumps(payload), headers=headers)
-            print("Response status code:", response.status_code)
-            print("Response content:", response.content)
-            partial_message += response.json()["generated_text"].rsplit("</s>")[0] + " "
-    return partial_message.strip()
-
-
-def request_translation_service(url: str, text: str, source_language: str, target_language: str) -> dict:
-    headers = {"Content-Type": "application/json"}
-    print(f"Sending request to translation service: {url}")
-    return {"result": translate_iter(headers, url, text, source_language, target_language)}
-
-
 def nlp_translate_remote(
-    source_language,
-    target_language,
-    download_data,
-    download_data_key,
-    upload_data,
-    upload_data_key,
-    use_orchestrator=False,
+    source_language, target_language, download_data, download_data_key, upload_data, upload_data_key, llm_configs={}
 ):
     """
     Creates a remote request to a translation service.
@@ -145,39 +33,35 @@ def nlp_translate_remote(
     :param str upload_data: XCOM Data which contains upload url.
     :param str upload_data_key: XCOM Data key to used to determine the upload url.
 
-    :param bool use_orchestrator: Orchestrator between client and service: client <-> orchestrator <-> service , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
     """
     import json
     import requests
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.xcom import get_data_from_xcom
-    from modules.operators.nlp_translate import request_translation_service
 
-    # Get llm remote config
-    conn_config = get_connection_config("nlp_translate_remote")
-    schema = conn_config["schema"]
-    host = conn_config["host"]
-    port = str(conn_config["port"])
-
-    url_base = schema + "://" + host + ":" + port
-    if use_orchestrator is True:
-        url_demand = url_base + "/demand_trl_service"
-        url_info = url_base + "/info"
-        # TODO: call demand and check availability with info until LLM is available
-        url = url_base + "/trl_service/generate"
-    else:
-        url = url_base + "/generate"
+    # Get translation remote config
+    translation_remote_config = get_connection_config("translation_remote")
+    translation_remote_config["translation_task"] = llm_configs["translation_task"]
+    translation_remote_config["translation_model_id"] = llm_configs["translation_model_id"]
 
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
 
     # Configure connector_provider and connect assetdb_temp_connector
-    connector_provider.configure({"assetdb_temp": assetdb_temp_config})
+    connector_provider.configure(
+        {"assetdb_temp": assetdb_temp_config, "translation_remote_config": translation_remote_config}
+    )
+    # Connect to assetdb temp
     assetdb_temp_connector = connector_provider.get_assetdbtemp_connector()
     assetdb_temp_connector.connect()
+
+    # Connect to translation service
+    translation_connector = connector_provider.get_translation_connector()
+    translation_connector.connect()
 
     # Load json File
     data_urn = get_data_from_xcom(download_data, [download_data_key])
@@ -194,35 +78,35 @@ def nlp_translate_remote(
         print(f"Start translating {data_type}")
         for item in data["result"]:
             if "title" in item.keys():
-                item["title"] = request_translation_service(url, item["title"], source_language, target_language)[
-                    "result"
-                ]
+                item["title"] = translation_connector.post_raw_translations(
+                    source_language, target_language, [item["title"]]
+                )[0]
             if "summary" in item.keys():
-                item["summary"] = request_translation_service(url, item["summary"], source_language, target_language)[
-                    "result"
-                ]
+                item["summary"] = translation_connector.post_raw_translations(
+                    source_language, target_language, [item["summary"]]
+                )[0]
     elif data_type == "ShortSummaryResult" or data_type == "SummaryResult":
         print(f"Start translating {data_type}")
         for item in data["result"]:
             if "summary" in item.keys():
-                item["summary"] = request_translation_service(url, item["summary"], source_language, target_language)[
-                    "result"
-                ]
+                item["summary"] = translation_connector.post_raw_translations(
+                    source_language, target_language, [item["summary"]]
+                )[0]
     elif data_type == "QuestionnaireResult":
         for item in data["result"]:
             if "questionnaire" in item.keys():
                 for grade in ["easy", "medium", "difficult"]:
                     for questionitem in item["questionnaire"][grade]:
-                        questionitem["mcq"]["question"] = request_translation_service(
-                            url, questionitem["mcq"]["question"], source_language, target_language
-                        )["result"]
-                        questionitem["mcq"]["correct_answer_explanation"] = request_translation_service(
-                            url, questionitem["mcq"]["correct_answer_explanation"], source_language, target_language
-                        )["result"]
+                        questionitem["mcq"]["question"] = translation_connector.post_raw_translations(
+                            source_language, target_language, [questionitem["mcq"]["question"]]
+                        )[0]
+                        questionitem["mcq"]["correct_answer_explanation"] = translation_connector.post_raw_translations(
+                            source_language, target_language, [questionitem["mcq"]["correct_answer_explanation"]]
+                        )[0]
                         for answeritem in questionitem["mcq"]["answers"]:
-                            answeritem["answer"] = request_translation_service(
-                                url, answeritem["answer"], source_language, target_language
-                            )["result"]
+                            answeritem["answer"] = translation_connector.post_raw_translations(
+                                source_language, target_language, [answeritem["answer"]]
+                            )[0]
     print("Result")
     data["language"] = target_language.strip().lower()
     print(data)
@@ -250,7 +134,7 @@ def op_nlp_translate_remote(
     download_data_key,
     upload_data,
     upload_data_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Provides PythonVirtualenvOperator to request a translation service.
@@ -267,7 +151,7 @@ def op_nlp_translate_remote(
 
     :param str upload_data: XCOM Data which contains upload url.
     :param str upload_data_key: XCOM Data key to used to determine the upload url.
-    :param bool use_orchestrator: Orchestrator between client and service: client <-> orchestrator <-> service , default: False, values: True, False
+    :param dict llm_configs: Configurations for all llm models
 
     :return: PythonVirtualenvOperator Operator to create opensearch document on the assetdb-temp storage.
     """
@@ -283,9 +167,9 @@ def op_nlp_translate_remote(
             download_data_key,
             upload_data,
             upload_data_key,
-            use_orchestrator,
+            llm_configs,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )

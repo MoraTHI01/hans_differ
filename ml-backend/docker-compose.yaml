@@ -59,6 +59,9 @@ x-airflow-common:
   # production: Use on a server the official image:
   #image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.10.5}
   # dev using build e.g. on macos with docker desktop
+  extends:
+    file: ../common/docker-compose.yaml
+    service: base-template
   build:
     context: airflow
     dockerfile: Dockerfile
@@ -66,7 +69,7 @@ x-airflow-common:
       # See https://airflow.apache.org/docs/apache-airflow/2.10.5/release_notes.html
       AIRFLOW_VERSION: "2.10.5"
       AIRFLOW_EXTRAS: "async,celery,cncf.kubernetes,docker,postgres,redis,ssh,statsd,virtualenv,mongo"
-      PYTHON_BASE_IMAGE: "python:3.9-slim-bullseye"
+      PYTHON_BASE_IMAGE: "python:3.9-slim-bookworm"
       AIRFLOW_PIP_VERSION: 24.2
       AIRFLOW_VERSION_SPECIFICATION: "==2.10.5"
       INSTALL_MYSQL_CLIENT: "false"
@@ -91,7 +94,7 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     # WARNING: Use _PIP_ADDITIONAL_REQUIREMENTS option ONLY for a quick checks
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
-    _PIP_ADDITIONAL_REQUIREMENTS: ""
+    _PIP_ADDITIONAL_REQUIREMENTS: "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"
     AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true' # "_run_image of the DockerOperator returns now a python string, not a byte string" Ref: https://github.com/apache/airflow/issues/13487
     HANS_HOST_PLATFORM: ${HANS_HOST_PLATFORM}
     AIRFLOW__CLI__ENDPOINT_URL: http://${HANS_ML_BACKEND_AIRFLOW_HOST}:${HANS_ML_BACKEND_AIRFLOW_PORT}
@@ -131,7 +134,7 @@ services:
     container_name: hans-ml-backend-assetdb-temp
     hostname: ${HANS_ML_BACKEND_ASSETDB_TEMP_HOST:-assetdb-temp}
     volumes:
-      - ./data/data-assetdb:/data
+      - /super_fast_storage/ml-backend/data/data-assetdb:/data
     expose:
       - ${HANS_ML_BACKEND_ASSETDB_TEMP_PORT:-9002}
     environment:
@@ -174,7 +177,7 @@ services:
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - ./data/data-airflow-postgresql:/var/lib/postgresql
+      - /super_fast_storage/ml-backend/data/data-airflow-postgresql:/var/lib/postgresql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -190,7 +193,7 @@ services:
     expose:
       - 6379
     volumes:
-      - ./data/data-airflow-redis:/var/lib/redis/data
+      - /super_fast_storage/ml-backend/data/data-airflow-redis:/var/lib/redis/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -360,25 +363,6 @@ services:
     environment:
       <<: *airflow-common-env
       CONNECTION_CHECK_MAX_COUNT: "0"
-      HANS_BACKEND_HOST: ${HANS_BACKEND_HOST}
-      HANS_BACKEND_PORT: ${HANS_BACKEND_PORT}
-      HANS_BACKEND_HOST_URL: ${HANS_BACKEND_HOST_URL}
-      HANS_BACKEND_PROTOCOL: ${HANS_BACKEND_PROTOCOL}
-      HANS_BACKEND_CONNID: ${HANS_BACKEND_CONNID}
-      HANS_FRONTEND_HOST: ${HANS_FRONTEND_HOST}
-      HANS_FRONTEND_PORT: ${HANS_FRONTEND_PORT}
-      HANS_FRONTEND_HOST_URL: ${HANS_FRONTEND_HOST_URL}
-      HANS_FRONTEND_PROTOCOL: ${HANS_FRONTEND_PROTOCOL}
-      HANS_FRONTEND_SSL_PORT: ${HANS_FRONTEND_SSL_PORT}
-      HANS_FRONTEND_CONNID: ${HANS_FRONTEND_CONNID}
-      HANS_ML_BACKEND_ASSETDB_TEMP_HOST: ${HANS_ML_BACKEND_ASSETDB_TEMP_HOST}
-      HANS_ML_BACKEND_ASSETDB_TEMP_PORT: ${HANS_ML_BACKEND_ASSETDB_TEMP_PORT}
-      HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_USER: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_USER}
-      HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_PASSWORD: ${HANS_ML_BACKEND_ASSETDB_TEMP_ROOT_PASSWORD}
-      HANS_ML_BACKEND_TO_BACKEND_HOST: ${HANS_ML_BACKEND_TO_BACKEND_HOST}
-      HANS_ML_BACKEND_TO_FRONTEND_HOST: ${HANS_ML_BACKEND_TO_FRONTEND_HOST}
-      HANS_ML_BACKEND_AIRFLOW_HANS_USER: ${HANS_ML_BACKEND_AIRFLOW_HANS_USER}
-      HANS_ML_BACKEND_AIRFLOW_HANS_PASSWORD: ${HANS_ML_BACKEND_AIRFLOW_HANS_PASSWORD}
     # Workaround for entrypoint issue. See: https://github.com/apache/airflow/issues/16252
     # Add airflow connections used by DAG's
     # see https://airflow.apache.org/docs/apache-airflow/stable/howto/connection.html#creating-a-connection-from-the-cli
@@ -407,49 +391,56 @@ services:
             --conn-type 'http' \
             --conn-login 'root' \
             --conn-password 'root' \
-            --conn-host 'gutmann.informatik.fh-nuernberg.de' \
+            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
             --conn-port '9900' \
             --conn-schema 'http'
         airflow connections add 'llm_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
-            --conn-port '8093' \
-            --conn-schema 'http'
+            --conn-login '${HANS_ML_SERVICE_LLM_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_LLM_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.2' \
+            --conn-port '${HANS_ML_SERVICE_LLM_PORT:-8093}' \
+            --conn-schema 'http' 
         airflow connections add 'vllm_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
-            --conn-port '8092' \
+            --conn-login '${HANS_ML_SERVICE_VLLM_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_VLLM_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.2' \
+            --conn-port '${HANS_ML_SERVICE_VLLM_PORT:-8093}' \
             --conn-schema 'http'
-        airflow connections add 'asr_engine_remote_whisper_s2t' \
+        airflow connections add 'rllm_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
-            --conn-port '8099' \
+            --conn-login '${HANS_ML_SERVICE_LLM_REASONING_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_LLM_REASONING_PASSWORD:-EMPTY}' \
+            --conn-host '${HANS_ML_SERVICE_LLM_REASONING_HOST:-host.docker.internal}' \
+            --conn-port '${HANS_ML_SERVICE_LLM_REASONING_PORT:-8090}' \
+            --conn-schema 'http' 
+        airflow connections add 'transcription_remote' \
+            --conn-type 'http' \
+            --conn-login '${HANS_ML_SERVICE_TRANSCRIPTION_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_TRANSCRIPTION_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.2' \
+            --conn-port '${HANS_ML_SERVICE_TRANSCRIPTION_PORT:-8099}' \
             --conn-schema 'http'
-        airflow connections add 'nlp_translate_remote' \
+        airflow connections add 'translation_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
-            --conn-port '8067' \
+            --conn-login '${HANS_ML_SERVICE_TRANSLATION_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_TRANSLATION_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.2' \
+            --conn-port '${HANS_ML_SERVICE_TRANSLATION_PORT:-8067}' \
             --conn-schema 'http'
         airflow connections add 'topic_segmentation_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
-            --conn-port '8095' \
+            --conn-login '${HANS_ML_SERVICE_TOPIC_SEGMENTATION_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_TOPIC_SEGMENTATION_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.2' \
+            --conn-port '${HANS_ML_SERVICE_TOPIC_SEGMENTATION_PORT:-8095}' \
             --conn-schema 'http'
-        airflow connections add 'text_embedding_remote' \
+        airflow connections add 'embeddings_remote' \
             --conn-type 'http' \
-            --conn-login 'root' \
-            --conn-password 'root' \
-            --conn-host '${DOCKER_HOST_GATEWAY_IP:-host.docker.internal}' \
+            --conn-login '${HANS_ML_SERVICE_EMBEDDING_USER:-admin}' \
+            --conn-password '${HANS_ML_SERVICE_EMBEDDING_PASSWORD:-EMPTY}' \
+            --conn-host '10.16.246.8' \
             --conn-port '8094' \
             --conn-schema 'http'
     depends_on:

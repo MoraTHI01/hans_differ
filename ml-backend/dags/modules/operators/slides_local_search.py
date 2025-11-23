@@ -15,9 +15,6 @@ from urllib.request import urlopen
 from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
 
 def create_local_slides_search_trie(
     slides_images_data, slides_images_data_key, slides_trie_result_data, slides_trie_result_key
@@ -43,7 +40,7 @@ def create_local_slides_search_trie(
     from collections import Counter
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
@@ -157,8 +154,9 @@ def op_create_local_slides_search_trie(
         task_id=gen_task_id(dag_id, "op_create_local_slides_search_trie", task_id_suffix),
         python_callable=create_local_slides_search_trie,
         op_args=[slides_images_data, slides_images_data_key, slides_trie_result_data, slides_trie_result_key],
-        # requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", 'nltk'],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        # requirements=[ "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport", 'nltk'],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

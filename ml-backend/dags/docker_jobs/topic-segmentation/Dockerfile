@@ -33,8 +33,7 @@ COPY . .
 ENV LANG C.UTF-8
 
 RUN python3 -m pip install minio
-RUN cd /code/modules/connectors && chmod -R +x * && \
-cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
+RUN cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
 
 RUN cd /code && chmod +x segment.sh \
 && chmod +x segment.py \
@@ -44,4 +43,5 @@ RUN cd /code && chmod +x segment.sh \
 #     --extra-index-url https://download.pytorch.org/whl/cu117 \
 RUN cd /code && python3 -m pip install webvtt-py torch==1.13.1 --extra-index-url https://download.pytorch.org/whl/cpu
 RUN cd /code && python3 -m pip install .
+RUN cd /code && python3 -m pip install /code/modules/dist/hans_shared_modules-0.1-py3-none-any.whl
 RUN cd /code && python3 init_vectorizer.py

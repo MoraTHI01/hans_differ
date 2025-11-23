@@ -1,7 +1,7 @@
 # Ubuntu version
 ARG VER=22.04
 # CUDA version
-ARG CUDA_VER=11.8.0
+ARG CUDA_VER=12.6.0
 
 FROM --platform=linux/amd64 nvidia/cuda:${CUDA_VER}-devel-ubuntu${VER}
 
@@ -23,6 +23,7 @@ python3-pip \
 git \
 build-essential \
 yasm \
+nasm \
 cmake \
 libtool \
 libc6 \
@@ -52,7 +53,7 @@ RUN cd /code/ffmpeg && PKG_CONFIG_PATH="/usr/local/lib/pkgconfig" ./configure --
 RUN cd /code/ffmpeg && make -j 8 && make install
 
 RUN python3 -m pip install minio
-RUN cd /code/modules/connectors && chmod -R +x * && \
-cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
+RUN cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
 
 RUN cd /code && chmod +x convert.sh && chmod +x create_dash.sh && chmod +x merge_dash.py
+RUN cd /code && python3 -m pip install /code/modules/dist/hans_shared_modules-0.1-py3-none-any.whl

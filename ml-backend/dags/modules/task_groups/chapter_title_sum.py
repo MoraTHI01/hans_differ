@@ -14,12 +14,12 @@ def chapter_title_sum(parent_dag, dag_group_name_download_media_files, container
     :return: TaskGroup to use in a DAG
     :rtype: airflow.utils.task_group.TaskGroup
     """
-    use_orchestrator = False
-    if "use_orchestrator" in config:
-        use_orchestrator = config["use_orchestrator"]
     use_nlp_translate_remote = False
     if "use_nlp_translate_remote" in config:
         use_nlp_translate_remote = config["use_nlp_translate_remote"]
+    llm_configs = {}
+    if "llm_configs" in config:
+        llm_configs = config["llm_configs"]
     with TaskGroup("chapter_title_sum") as group6:
         # XCOM injection helper
         from modules.operators.xcom import inject_xcom_data
@@ -56,7 +56,7 @@ def chapter_title_sum(parent_dag, dag_group_name_download_media_files, container
                 parent_dag.dag_id, "chapter_title_sum", "op_create_new_urn_on_assetdbtemp", "topic_result_en_urn"
             ),
             upload_llm_result_urn_key="topic_result_en_urn",
-            use_orchestrator=use_orchestrator,
+            llm_configs=llm_configs,
         )
 
         # Create url "topic_result_en_url" using previous urn "topic_result_en_urn" on assetdb-temp for download
@@ -130,7 +130,7 @@ def chapter_title_sum(parent_dag, dag_group_name_download_media_files, container
                     parent_dag.dag_id, "chapter_title_sum", "op_create_new_urn_on_assetdbtemp", "topic_result_de_urn"
                 ),
                 upload_data_key="topic_result_de_urn",
-                use_orchestrator=use_orchestrator,
+                llm_configs=llm_configs,
             )
             t9.doc_md = """\
               #NLP Translation

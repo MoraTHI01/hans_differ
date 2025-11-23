@@ -10,10 +10,6 @@ import requests
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 def create_text_chunks(
     sentences: list[str], intervals: list[tuple[float, float]], min_chunk_words: int = 128, min_overlap_words: int = 32
 ) -> tuple[list[str], list[tuple[float, float]]]:
@@ -63,15 +59,13 @@ def create_text_chunks(
     return chunks, chunk_intervals
 
 
-def create_vectors(chunks: list[str], tei_url: str, request_batch_size: int = 64) -> list[list[float]]:
+def create_vectors(chunks: list[str], embedding_connector, request_batch_size: int = 64) -> list[list[float]]:
     # Call embedding service to create chunk vectors
     all_embeddings = []
     for i in range(0, len(chunks), request_batch_size):
         print(f"***** Batch process chunks {i} to {i + request_batch_size} with highest id {len(chunks) - 1}")
         batch = chunks[i : i + request_batch_size]
-        payload = {"inputs": batch}
-        response = requests.post(tei_url, json=payload)
-        embeddings_data = response.json()
+        embeddings_data = embedding_connector.gen_embedding_for_batch(batch)
         all_embeddings.extend(embeddings_data)
     return all_embeddings
     # opensearch_client = get_opensearch_client()
@@ -86,7 +80,7 @@ def create_opensearch_vectors(
     download_meta_urn_key,
     opensearch_vectors_data,
     opensearch_vectors_urn_key,
-    use_orchestrator=False,
+    llm_configs={},
 ):
     """
     Creates the opensearch vector entries (of one video) for the opensearch engine.
@@ -99,7 +93,7 @@ def create_opensearch_vectors(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str opensearch_vectors_data: XCOM data containing URN for the upload of the opensearch document to assetdb-temp
     :param str opensearch_vectors_urn_key: XCOM Data key to used to determine the URN for the upload of the opensearch document.
-    :param bool use_orchestrator: Whether to use inference orchestrator for text embedding service or not.
+    :param dict llm_configs: Configurations for all llm models
     """
     import json
     import time
@@ -107,20 +101,30 @@ def create_opensearch_vectors(
     from io import BytesIO
     from copy import deepcopy
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
     from modules.operators.opensearch_vectors import create_text_chunks, create_vectors
 
+    # Get embeddings remote config
+    embedding_remote_config = get_connection_config("embeddings_remote")
+    embedding_remote_config["embedding_task"] = llm_configs["embedding_task"]
+    embedding_remote_config["embedding_model_id"] = llm_configs["embedding_model_id"]
+
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
 
-    # Configure connector_provider and connect assetdb_temp_connector
-    connector_provider.configure({"assetdb_temp": assetdb_temp_config})
-
+    # Configure connector_provider
+    connector_provider.configure(
+        {"assetdb_temp": assetdb_temp_config, "embedding_remote_config": embedding_remote_config}
+    )
     assetdb_temp_connector = connector_provider.get_assetdbtemp_connector()
     assetdb_temp_connector.connect()
+
+    # Connect to embeddings
+    embedding_connector = connector_provider.get_embedding_connector()
+    embedding_connector.connect()
 
     # Get locale
     locale = get_data_from_xcom(asr_locale_data, [asr_locale_key])
@@ -143,23 +147,6 @@ def create_opensearch_vectors(
     meta_data = json.loads(meta_response.data)
     meta_response.close()
     meta_response.release_conn()
-
-    # Get text embedding service remote config
-    tei_config = get_connection_config("text_embedding_remote")
-    tei_schema = tei_config["schema"]
-    tei_host = tei_config["host"]
-    tei_port = str(tei_config["port"])
-
-    tei_url_base = tei_schema + "://" + tei_host + ":" + tei_port
-    if use_orchestrator is True:
-        tei_url_demand = tei_url_base + "/demand_text_embedding_service"  # Todo: verify url defined by orchestrator
-        tei_url_info = tei_url_base + "/info"
-        # TODO: call demand and check availability with info until TEI service is available
-        tei_url = tei_url_base + "/text_embedding_service/embed"
-    else:
-        tei_url = tei_url_base + "/embed"
-
-    print("***** TEI URL:", tei_url, flush=True)
 
     sentences_en = [
         s["transcript_formatted"].strip() for s in transcript_en_json["result"] if s["transcript_formatted"].strip()
@@ -184,7 +171,7 @@ def create_opensearch_vectors(
 
     # Create vectors
     chunks, chunk_intervals = create_text_chunks(sentences_en, intervals)
-    vectors = create_vectors(chunks, tei_url)
+    vectors = create_vectors(chunks, embedding_connector)
     assert len(chunks) == len(vectors), "Text chunks and vectors have different lengths"
     vector_entries = []
     for n, vector in enumerate(vectors):
@@ -227,6 +214,7 @@ def op_create_opensearch_vectors(
     download_meta_urn_key,
     opensearch_data,
     opensearch_urn_key,
+    llm_configs={},
 ):
     """
     Provides PythonVirtualenvOperator to create an opensearch document on the assetdb-temp storage.
@@ -243,6 +231,7 @@ def op_create_opensearch_vectors(
     :param str download_meta_urn_key: XCOM Data key to used to determine the URN for the meta data.
     :param str opensearch_data: XCOM data containing URN for the upload of the opensearch document to assetdb-temp
     :param str opensearch_urn_key: XCOM Data key to used to determine the URN for the upload of the opensearch document.
+    :param dict llm_configs: Configurations for all llm models
 
     :return: PythonVirtualenvOperator Operator to create opensearch document on the assetdb-temp storage.
     """
@@ -260,9 +249,11 @@ def op_create_opensearch_vectors(
             download_meta_urn_key,
             opensearch_data,
             opensearch_urn_key,
+            llm_configs,
         ],
-        # requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", 'nltk'],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        # requirements=[ "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl", "eval-type-backport", 'nltk'],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

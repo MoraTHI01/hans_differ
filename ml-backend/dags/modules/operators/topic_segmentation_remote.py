@@ -5,9 +5,6 @@ from typing import Optional, Union
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 @dataclass
 class RawSegment:
     result_index: int
@@ -44,6 +41,10 @@ def define_segmentation_config(video_dur: Union[float, int]) -> dict:
 
 def run_topic_segmentation(sentences: list[str], intervals: list[tuple[float, float]], url: str) -> TopicResultRaw:
     if len(sentences) < 5:
+        if len(sentences) < 1:
+            video_segment = RawSegment(result_index=0, text="", interval=(0.0, 1.0))
+            topic_result = TopicResultRaw(result=[video_segment])
+            return topic_result
         # If there is an empty transcript or < 5 sentence, segmentation does not make sense.
         # Treat transcript as one segment instead.
         text = " ".join(sentences)
@@ -74,7 +75,7 @@ def call_segmentation_service(
     from dataclasses import asdict
     from io import BytesIO
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config, get_connection_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
@@ -183,7 +184,7 @@ def op_topic_segmentation_remote(
         task_id=gen_task_id(dag_id, "op_topic_segmentation_remote", task_id_suffix),
         python_callable=call_segmentation_service,
         op_args=[download_data, download_data_key, upload_data_topic_result, upload_data_key_topic_result],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )

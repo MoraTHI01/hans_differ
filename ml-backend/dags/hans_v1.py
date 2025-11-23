@@ -33,16 +33,28 @@ default_args = {
 # see https://www.astronomer.io/guides/airflow-scaling-workers/ and
 # https://airflow.apache.org/docs/apache-airflow/stable/faq.html#how-to-improve-dag-performance
 DAG_NAME = "hans_v1.0.3"
-with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=False, max_active_runs=1) as dag:
+with DAG(
+    DAG_NAME, default_args=default_args, schedule_interval=None, catchup=False, concurrency=12, max_active_runs=3
+) as dag:
     now = datetime.now()
     time_started = now.strftime("%m_%d_%Y_%H_%M_%S")
 
     # DEVELOPER CONFIGURATION
-    do_publish = True
+    do_publish = True # This variable is responsible for passing the assetdb-temp data into the correct assetdb, metadb and mediadb files - There is no reason to set this to False.
     do_video_encoding = True
     do_use_remote_asr_engine = True
     do_use_nlp_translate_remote = True
     do_topic_segmentation_remote = True
+    llm_configs = {
+        "llm_model_id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+        "llm_task": "generate",
+        "vllm_model_id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+        "vllm_task": "generate",
+        "embedding_model_id": "llamaindex/vdr-2b-multi-v1",
+        "embedding_task": "embed",
+        "translation_model_id": "google/madlad400-7b-mt",
+        "translation_task": "translate",
+    }
     # CONFIGURATION END
 
     if do_video_encoding is False:
@@ -67,7 +79,7 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
 
     from modules.task_groups.slides_processor import slides_processor
 
-    group3 = slides_processor(dag, "download_media_files", config={"use_orchestrator": False, "dpi": 150})
+    group3 = slides_processor(dag, "download_media_files", config={"dpi": 150, "llm_configs": llm_configs})
 
     if not do_use_remote_asr_engine is True:
         # ASR ENGINE LOCAL TASK GROUP
@@ -86,9 +98,9 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
             "OPENAI",
             config={
                 "batch_size": 8,
-                "num_cpus": 4.0,
-                "ram_limit_docker": "10g",
-                "use_gpu": False,
+                "num_cpus": 8.0,
+                "ram_limit_docker": "100g",
+                "use_gpu": True,
                 "asr_model": "medium",
             },
         )
@@ -108,7 +120,6 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
             # USE WHISPER_S2T, mod9 currently not fully implemented
             "WHISPER_S2T",
             config={
-                "use_orchestrator": False,
                 "batch_size": 8,  # 8 for smaller GPU's e.g. RTX 2080 Ti, 48 for data center e.g. A100 40GB
                 "asr_model": "large-v3",
             },
@@ -121,13 +132,14 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
         dag_group_name_download_media_files="download_media_files",
         dag_group_name_asr_engine=asr_engine_task_group_name,
         dag_group_name_summarization="summarization",
+        config={"llm_configs": llm_configs},
     )
 
     # topic segmentation of video content
     if do_topic_segmentation_remote:
         from modules.task_groups.topic_segmentation_remote import topic_segmentation
 
-        ts_config = {"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_orchestrator": False}
+        ts_config = {"use_nlp_translate_remote": do_use_nlp_translate_remote, "llm_configs": llm_configs}
         group6 = topic_segmentation(
             dag, "download_media_files", asr_engine_task_group_name, container_id, config=ts_config
         )
@@ -140,9 +152,9 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
 
         ts_config = {
             "use_nlp_translate_remote": do_use_nlp_translate_remote,
-            "use_orchestrator": False,
-            "use_gpu": False,
+            "use_gpu": True,
             "embedding_model": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+            "llm_configs": llm_configs,
         }
         group6 = topic_segmentation(
             dag, "download_media_files", asr_engine_task_group_name, container_id, config=ts_config
@@ -159,7 +171,7 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
         "topic_result_urn",
         "topic_result_urn",
         container_id,
-        config={"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_orchestrator": False, "use_gpu": False},
+        config={"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_gpu": True, "llm_configs": llm_configs},
     )
 
     # summarization of video content
@@ -170,7 +182,7 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
         "download_media_files",
         asr_engine_task_group_name,
         container_id,
-        config={"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_orchestrator": False, "use_gpu": False},
+        config={"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_gpu": True, "llm_configs": llm_configs},
     )
 
     # CONVERT VIDEO FOR STREAMING
@@ -186,7 +198,7 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
         "download_media_files",
         container_id,
         do_video_encoding,
-        config={"num_cpus": 4.0, "ram_limit_docker": "10g", "use_gpu": False, "resolution": "hd"},
+        config={"num_cpus": 8.0, "ram_limit_docker": "100g", "use_gpu": False, "resolution": "hd"},
     )
 
     # Video-to-Slide (VTS) Alignment
@@ -199,16 +211,26 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
         asr_engine_task_group_name,
         "slides_processor",
         config={
-            "autoimage_name": "MBZUAI/swiftformer-xs",
-            "sentence_model_name": "sentence-transformers/distiluse-base-multilingual-cased",
-            "jump_penalty": 0.1,
-            "merge_method": "max",  # Supported methods: mean, max, all, weighted_sum
+            "mode": "local",  # local, or remote: Remote is more accurate using VLLM and MME
+            "local_config": {
+                "autoimage_name": "MBZUAI/swiftformer-xs",
+                "sentence_model_name": "sentence-transformers/distiluse-base-multilingual-cased",
+                "jump_penalty": 0.1,
+                "merge_method": "max",  # Supported methods: mean, max, all, weighted_sum
+            },
+            "remote_config": {
+                "jump_penalty": 0.1,
+                "merge_method": "mean",  # Supported methods: mean, max, all, weighted_sum
+            },
+            "llm_configs": llm_configs,
         },
     )
 
     from modules.task_groups.keyword_extraction import keyword_extractor
 
-    group11 = keyword_extractor(dag, "download_media_files", "slides_processor", asr_engine_task_group_name)
+    group11 = keyword_extractor(
+        dag, "download_media_files", "slides_processor", asr_engine_task_group_name, config={"llm_configs": llm_configs}
+    )
 
     # PUBLISHING TASK GROUP
 
