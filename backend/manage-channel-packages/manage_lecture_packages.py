@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 """
-Helper to manage channel packages on HAnS backend
+Helper to manage channel and lecture packages on HAnS backend
 
 Available Features:
-  --clean-db              Cleanup all channel packages from database
-  --list-db               List all channel packages in database
-  --clean-db-with-log     List all channel packages and then delete them all
-  --list-host             List channel packages in host packages folder
-  --download --file FILE  Download a specific channel package from database
-  --install --file FILE   Install a specific channel package from host folder
-  --no-extraction         Skip extraction when installing (manual extraction required)
+  --clean-db               Cleanup all channel packages from object storage
+  --list-db                List all channel packages in object storage
+  --list-lec               List all individual lectures in the database
+  --clean-db-with-log      List all channel packages and then delete them all
+  --list-host              List channel packages in host packages folder
+  --download --file FILE   Download a specific channel package from database
+  --install --file FILE    Install a specific channel package from host folder
+  --no-extraction          Skip extraction when installing (manual extraction required)
 
 Examples:
   python manage_channel_packages.py --list-db
+  python manage_channel_packages.py --list-lec
   python manage_channel_packages.py --clean-db-with-log
   python manage_channel_packages.py --install --file my_package.tar.gz
   python manage_channel_packages.py --download --file my_package.tar.gz
@@ -20,7 +22,7 @@ Examples:
 __author__ = "Thomas Ranzenberger"
 __copyright__ = "Copyright 2022, Technische Hochschule Nuernberg"
 __license__ = "Apache 2.0"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __status__ = "Draft"
 
 
@@ -43,40 +45,36 @@ def show_comprehensive_help():
     Display comprehensive help information for all available features
     """
     help_text = """
-HAnS Channel Package Manager
-============================
+HAnS Channel & Lecture Package Manager
+======================================
 
-This script helps manage channel packages on the HAnS backend system.
+This script helps manage channel and lecture packages on the HAnS backend system.
 
 AVAILABLE COMMANDS:
 ==================
 
-Database Management:
-  --clean-db                    Remove all channel packages from the database
-  --list-db                     Display all channel packages currently in the database
-  --list-db-with-datetime       Display all channel packages with their creation times
-  --list-db-with-datetime-sorted Display all channel packages with creation times (sorted newest first)
-  --clean-db-with-log          List all packages and then delete them (shows what will be deleted)
+Database & Storage Management:
+  --clean-db               Remove all channel packages from the object storage
+  --list-db                Display all channel packages currently in object storage
+  --list-lec               Display all individual lectures currently in the database
+  --clean-db-with-log      List all packages and then delete them (shows what will be deleted)
 
 Host Management:
-  --list-host             Show all channel package files in the host packages folder
+  --list-host              Show all channel package files in the host packages folder
 
 Package Operations:
-  --download --file FILE  Download a specific channel package from database to host
-  --install --file FILE   Install a channel package from host folder to the system
-  --no-extraction         Skip automatic extraction (requires manual extraction)
+  --download --file FILE   Download a specific channel package from database to host
+  --install --file FILE    Install a channel package from host folder to the system
+  --no-extraction          Skip automatic extraction (requires manual extraction)
 
 USAGE EXAMPLES:
 ==============
 
-List all packages in database:
+List all packages in object storage:
   python manage_channel_packages.py --list-db
 
-List all packages with creation times:
-  python manage_channel_packages.py --list-db-with-datetime
-
-List all packages with creation times (sorted newest first):
-  python manage_channel_packages.py --list-db-with-datetime-sorted
+List all lectures in the database:
+  python manage_channel_packages.py --list-lec
 
 List and delete all packages:
   python manage_channel_packages.py --clean-db-with-log
@@ -95,7 +93,7 @@ NOTES:
 - Channel packages are stored as .tar.gz files
 - The --no-extraction flag is useful when you have permission issues
 - When using --no-extraction, you must manually extract the package first
-- All operations require proper database connectivity
+- All operations require proper database and storage connectivity
 """
     print(help_text)
 
@@ -157,71 +155,43 @@ def list_channel_packages(assetdb_connector):
         print("total 0")
 
 
-def list_channel_packages_with_datetime(assetdb_connector):
+def list_all_lectures(metadb_connector):
     """
-    List all channel packages on assetdb with their creation times
+    List all individual lectures from the MetaDB.
 
-    :param assetdb_connector assetdb_connector: assetdb_connector
+    Lectures are identified as documents in the 'post' collection
+    that do NOT have a 'posts' field, which is characteristic of a channel.
+
+    :param metadb_connector metadb_connector: The connected MetaDB connector.
     """
-    channel_packages_gen = assetdb_connector.list_objects_on_bucket("packages", "")
-    if channel_packages_gen is not None:
-        channel_packages_list = list(channel_packages_gen)
-        print(f"total {len(channel_packages_list)}")
-        print(f"{'Package Name':<50} {'Created Date':<20} {'Created Time':<20}")
-        print("-" * 90)
-        for channel_package in channel_packages_list:
-            # Get the last_modified time from the object
-            created_time = channel_package.last_modified
-            if created_time:
-                # Format the datetime for display
-                created_date = created_time.strftime("%Y-%m-%d")
-                created_time_str = created_time.strftime("%H:%M:%S")
-                print(f"{channel_package.object_name:<50} {created_date:<20} {created_time_str:<20}")
-            else:
-                # If no creation time available, show unknown
-                print(f"{channel_package.object_name:<50} {'Unknown':<20} {'Unknown':<20}")
-    else:
-        print("total 0")
+    print("Querying for all lectures in the database...")
+    # This filter finds documents that are likely lectures, not channels.
+    lecture_filter = {"posts": {"$exists": False}}
 
+    # This assumes your connector has a method to find multiple documents by a filter.
+    # The exact method name might differ in your connector implementation.
+    try:
+        lectures = metadb_connector.find_metadata_by_filter("meta", "post", lecture_filter)
+        lecture_list = list(lectures)
 
-def list_channel_packages_with_datetime_sorted(assetdb_connector):
-    """
-    List all channel packages on assetdb with their creation times, sorted by date/time in descending order
+        if not lecture_list:
+            print("Found 0 lectures.")
+            return
 
-    :param assetdb_connector assetdb_connector: assetdb_connector
-    """
-    channel_packages_gen = assetdb_connector.list_objects_on_bucket("packages", "")
-    if channel_packages_gen is not None:
-        channel_packages_list = list(channel_packages_gen)
+        print(f"Found {len(lecture_list)} lectures:\n")
+        print(f"{'UUID':<38} {'COURSE':<15} {'TITLE'}")
+        print("-" * 80)
 
-        # Create a list of tuples with (package, created_time) for sorting
-        packages_with_time = []
-        for channel_package in channel_packages_list:
-            created_time = channel_package.last_modified
-            if created_time:
-                packages_with_time.append((channel_package, created_time))
-            else:
-                # Put packages without time at the end
-                packages_with_time.append((channel_package, datetime.min))
+        for lec in lecture_list:
+            uuid = lec.get("uuid", "N/A")
+            course = lec.get("course_acronym", "N/A")
+            title = lec.get("title", "N/A")
+            print(f"{uuid:<38} {course:<15} {title}")
 
-        # Sort by created_time in descending order (newest first)
-        packages_with_time.sort(key=lambda x: x[1], reverse=True)
-
-        print(f"total {len(channel_packages_list)}")
-        print(f"{'Package Name':<50} {'Created Date':<20} {'Created Time':<20}")
-        print("-" * 90)
-
-        for channel_package, created_time in packages_with_time:
-            if created_time != datetime.min:
-                # Format the datetime for display
-                created_date = created_time.strftime("%Y-%m-%d")
-                created_time_str = created_time.strftime("%H:%M:%S")
-                print(f"{channel_package.object_name:<50} {created_date:<20} {created_time_str:<20}")
-            else:
-                # If no creation time available, show unknown
-                print(f"{channel_package.object_name:<50} {'Unknown':<20} {'Unknown':<20}")
-    else:
-        print("total 0")
+    except Exception as e:
+        print(f"An error occurred while querying for lectures: {e}")
+        print("Please ensure your 'metadb_connector' has a 'find_metadata_by_filter' method.")
+        sys.exit(-1)
 
 
 def download_channel_package(assetdb_connector, channel_package_file):
@@ -556,22 +526,20 @@ def install_channel_package(assetdb_connector, channel_package_file, skip_extrac
             now = datetime.now()
             curr_meta_data_lecture["package_info"]["installed"] = now.strftime("%m_%d_%Y_%H_%M_%S")
 
-            # Check if lecture already exists in database and preserve its state
-            existing_lecture = mongo_connector.get_metadata(f"metadb:meta:post:id:{curr_meta_data_lecture_uuid}")
+                        # Preserve existing published/listed values, then reset state
+            existing_published = curr_meta_data_lecture.get("state", {}).get("published", True)
+            existing_listed = curr_meta_data_lecture.get("state", {}).get("listed", True)
 
-            if existing_lecture and "state" in existing_lecture:
-                # Preserve existing state from database
-                curr_meta_data_lecture["state"] = existing_lecture["state"]
-                print(f"Preserved existing state for lecture {curr_meta_data_lecture_uuid}")
-            else:
-                # Set default state for new lectures
-                curr_meta_data_lecture["state"] = {
-                    "published": True,
-                    "listed": True,
-                    "overall_step": "EDITING",
-                    "editing_progress": 0
-                }
-                print(f"Set default state for new lecture {curr_meta_data_lecture_uuid}")
+            # Reset state object completely
+            curr_meta_data_lecture["state"] = {}
+
+            # Restore the preserved published/listed values
+            curr_meta_data_lecture["state"]["published"] = existing_published
+            curr_meta_data_lecture["state"]["listed"] = existing_listed
+
+            # Set other state values
+            curr_meta_data_lecture["state"]["overall_step"] = "EDITING"
+            curr_meta_data_lecture["state"]["editing_progress"] = 0
 
             print("Final meta data:")
             meta_data_str = json.dumps(curr_meta_data_lecture)
@@ -603,75 +571,70 @@ def install_channel_package(assetdb_connector, channel_package_file, skip_extrac
         print(f"Published channel succesful: {urn_result}")
 
 
-parser = argparse.ArgumentParser(
-    description="HAnS Channel Package Manager - Manage channel packages on HAnS backend",
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    epilog="""
-Examples:
-  %(prog)s --list-db                           # List all packages in database
-  %(prog)s --list-db-with-datetime             # List all packages with creation times
-  %(prog)s --list-db-with-datetime-sorted      # List all packages with creation times (sorted newest first)
-  %(prog)s --clean-db-with-log                 # List and delete all packages
-  %(prog)s --install --file package.tar.gz     # Install a package
-  %(prog)s --download --file package.tar.gz    # Download a package
-  %(prog)s --help                              # Show this help message
-    """
-)
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument("--clean-db", action="store_true",
-                  help="Remove all channel packages from the database")
-group.add_argument("--list-db", action="store_true",
-                  help="Display all channel packages currently in the database")
-group.add_argument("--list-db-with-datetime", action="store_true",
-                  help="Display all channel packages with their creation times")
-group.add_argument("--list-db-with-datetime-sorted", action="store_true",
-                  help="Display all channel packages with creation times (sorted newest first)")
-group.add_argument("--clean-db-with-log", action="store_true",
-                  help="List all channel packages and then delete them all (shows what will be deleted)")
-group.add_argument("--list-host", action="store_true",
-                  help="Show all channel package files in the host packages folder")
-group.add_argument("--download", action="store_true",
-                  help="Download a specific channel package from database to host (requires --file)")
-group.add_argument("--install", action="store_true",
-                  help="Install a channel package from host folder to the system (requires --file)")
-group.add_argument("--help-features", action="store_true",
-                  help="Show comprehensive help with all features and examples")
-parser.add_argument("--file", type=str,
-                   help="Channel package filename (e.g., 6a31edcc-1b34-4343-bed7-047a1cf36383.tar.gz)")
-parser.add_argument("--no-extraction", action="store_true",
-                   help="Skip automatic extraction when installing (requires manual extraction)")
-args = parser.parse_args()
+# --- MAIN EXECUTION ---
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="HAnS Channel and Lecture Package Manager",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+    Examples:
+      %(prog)s --list-db                      # List all channel packages in object storage
+      %(prog)s --list-lec                     # List all individual lectures in the database
+      %(prog)s --install --file package.tar.gz # Install a channel package
+      %(prog)s --help                         # Show this help message
+        """
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--clean-db", action="store_true", help="Remove all channel packages from object storage")
+    group.add_argument("--list-db", action="store_true", help="Display all channel packages in object storage")
+    group.add_argument("--list-lec", action="store_true", help="Display all individual lectures in the database")
+    group.add_argument("--clean-db-with-log", action="store_true", help="List all channel packages and then delete them")
+    group.add_argument("--list-host", action="store_true", help="Show all channel package files in the host packages folder")
+    group.add_argument("--download", action="store_true", help="Download a channel package (requires --file)")
+    group.add_argument("--install", action="store_true", help="Install a channel package (requires --file)")
+    group.add_argument("--help-features", action="store_true", help="Show comprehensive help with all features and examples")
 
-# Show comprehensive help if no arguments or help requested
-if len(sys.argv) == 1 or args.help_features:
-    show_comprehensive_help()
-    sys.exit(0)
+    parser.add_argument("--file", type=str, help="Channel package filename (e.g., 6a31edcc-1b34-4343-bed7-047a1cf36383.tar.gz)")
+    parser.add_argument("--no-extraction", action="store_true", help="Skip automatic extraction when installing (requires manual extraction)")
 
-try:
-    assetdb_con = connector_provider.get_assetdb_connector()
-    assetdb_con.connect()
-    if args.clean_db:
-        cleanup_channel_packages(assetdb_con)
-    if args.list_db:
-        list_channel_packages(assetdb_con)
-    elif args.list_db_with_datetime:
-        list_channel_packages_with_datetime(assetdb_con)
-    elif args.list_db_with_datetime_sorted:
-        list_channel_packages_with_datetime_sorted(assetdb_con)
-    elif args.clean_db_with_log:
-        delete_all_list_channel_packages(assetdb_con)
-    elif args.list_host:
-        os.system("cd /channel-packages && ls -1 *.tar.gz")
-    elif args.download:
-        download_channel_package(assetdb_con, args.file)
-    elif args.install:
-        install_channel_package(assetdb_con, args.file, args.no_extraction)
-    elif args.help_features:
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1 or args.help_features:
         show_comprehensive_help()
-    else:
+        sys.exit(0)
+
+    try:
+        if args.list_lec:
+            metadb_con = connector_provider.get_metadb_connector()
+            metadb_con.connect()
+            list_all_lectures(metadb_con)
+        elif args.list_host:
+            # This command does not require a connector
+            os.system("cd /channel-packages && ls -1 *.tar.gz")
+        else:
+            # All other commands require the assetdb_connector
+            assetdb_con = connector_provider.get_assetdb_connector()
+            assetdb_con.connect()
+            if args.clean_db:
+                cleanup_channel_packages(assetdb_con)
+            elif args.list_db:
+                list_channel_packages(assetdb_con)
+            elif args.clean_db_with_log:
+                delete_all_list_channel_packages(assetdb_con)
+            elif args.download:
+                if not args.file:
+                    parser.error("--download requires --file.")
+                download_channel_package(assetdb_con, args.file)
+            elif args.install:
+                if not args.file:
+                    parser.error("--install requires --file.")
+                install_channel_package(assetdb_con, args.file, args.no_extraction)
+            else:
+                parser.print_help()
+                sys.exit(-1)
+
+        sys.exit(0)
+    except Exception as e:
+        print("Unexpected error occurred:")
+        print(e)
         sys.exit(-1)
-    sys.exit(0)
-except Exception as e:
-    print("Unexpected error occured:")
-    print(e)
-    sys.exit(-1)

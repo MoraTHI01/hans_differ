@@ -6,11 +6,9 @@ services:
     hostname: ${HANS_BACKEND_ASSETDB_HOST:-assetdb}
     restart: always
     volumes:
-      - /super_fast_storage/backend/data/data-assetdb:/data
+      - ./data/data-assetdb:/data
     expose:
       - ${HANS_BACKEND_ASSETDB_PORT:-9001}
-    ports:
-      - "38588:38588" # Exposing MinIO console port
     environment:
       MINIO_ROOT_USER: ${HANS_BACKEND_ASSETDB_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${HANS_BACKEND_ASSETDB_ROOT_PASSWORD:-minio123}
@@ -47,7 +45,7 @@ services:
       file: ../common/docker-compose.yaml
       service: base-template
     volumes:
-      - /super_fast_storage/backend/channel-packages:/channel-packages
+      - ./channel-packages:/channel-packages
     command: /bin/bash -c "echo 'Installing hans-modules dependencies...'; pip3 install /opt/hans-modules/dist/*.whl --break-system-packages; exec bash"
     stdin_open: true
     tty: true
@@ -64,12 +62,9 @@ services:
     hostname: ${HANS_BACKEND_MEDIADB_HOST:-mediadb}
     restart: always
     volumes:
-      - /super_fast_storage/backend/data/data-mediadb:/data
+      - ./data/data-mediadb:/data
     expose:
       - ${HANS_BACKEND_MEDIADB_PORT:-9000}
-    # Explicitly mapping the port for external access
-    ports:
-      - "38587:38587"
     environment:
       MINIO_ROOT_USER: ${HANS_BACKEND_MEDIADB_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${HANS_BACKEND_MEDIADB_ROOT_PASSWORD:-minio123}
@@ -112,7 +107,7 @@ services:
       MONGO_INITDB_DATABASE: ${HANS_BACKEND_METADB_DATABASE:-meta}
     volumes:
       - ./metadb/mongodb-init.js:/metadb/mongodb-init.js:ro
-      - /super_fast_storage/backend/data/data-metadb:/data
+      - ./data/data-metadb:/data
     networks:
       - data-backend-tier
 
@@ -143,7 +138,7 @@ services:
         soft: 65536 # maximum number of open files for the OpenSearch user, set to at least 65536 on modern systems
         hard: 65536
     volumes:
-      - /super_fast_storage/backend/data/data-searchengine-node1:/usr/share/opensearch/data
+      - ./data/data-searchengine-node1:/usr/share/opensearch/data
     expose:
       - ${HANS_BACKEND_OPENSEARCH_PORT:-9200}
       - 9600 # required for Performance Analyzer
@@ -177,7 +172,7 @@ services:
     depends_on:
       - searchengine-node1
     volumes:
-      - /super_fast_storage/backend/data/data-searchengine-node2:/usr/share/opensearch/data
+      - ./data/data-searchengine-node2:/usr/share/opensearch/data
     networks:
       - data-backend-tier
     #user: $DOCKER_USER
@@ -206,8 +201,8 @@ services:
       - searchengine-node2
     networks:
       - data-backend-tier
-    # user: $DOCKER_USER
-    # user: $DOCKER_USER
+   # user: $DOCKER_USER
+   # user: $DOCKER_USER
 
   webserver:
     build: nginx
@@ -249,7 +244,7 @@ services:
     container_name: hans-backend-matomo-db
     hostname: matomo-db
     volumes:
-      - /super_fast_storage/backend/data/matomo_mysql:/var/lib/mysql
+      - ./data/matomo_mysql:/var/lib/mysql
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
     networks:
@@ -262,7 +257,7 @@ services:
     links:
       - matomo-db
     volumes:
-      - /super_fast_storage/backend/data/matomo:/var/www/html:rw
+      - ./data/matomo:/var/www/html:rw
     env_file:
       - ./matomo/matomo_analytics/matomo.env
     depends_on:
@@ -281,7 +276,7 @@ services:
     volumes:
       - ./matomo/matomo_nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./matomo/matomo_nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - /super_fast_storage/backend/data/matomo:/var/www/html:ro
+      - ./data/matomo:/var/www/html:ro
     expose:
       - ${HANS_BACKEND_MATOMO_PORT:-80}
     depends_on:
@@ -305,7 +300,7 @@ services:
     container_name: hans-backend-matomo-init
     hostname: matomo-init
     volumes:
-      - /super_fast_storage/backend/data/matomo:/matomo:rw
+      - ./data/matomo:/matomo:rw
     depends_on:
       - matomo-webserver
       - matomo-user-analytics
@@ -314,22 +309,22 @@ services:
       - data-backend-tier
 
   #matomo-trackingexport:
-  # build: matomo/matomo_trackingexport
-  # environment:
-  #   MATOMO_HOST: http://${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}/
-  #   MATOMO_USERNAME: ${HANS_BACKEND_MATOMO_USER:-admin}
-  #   MATOMO_PASSWORD: ${HANS_BACKEND_MATOMO_PASSWORD:-adminadmin}
-  # container_name: hans-backend-matomo-trackingexport
-  # hostname: matomo-trackingexport
-  # volumes:
-  #   - ./data/matomo_export:/export:rw
-  # depends_on:
-  #   - matomo-webserver
-  #   - matomo-user-analytics
-  #   - matomo-db
-  #   - matomo-init
-  # networks:
-  #   - data-backend-tier
+  #  build: matomo/matomo_trackingexport
+  #  environment:
+  #    MATOMO_HOST: http://${HANS_BACKEND_MATOMO_HOST:-matomo-webserver}/
+  #    MATOMO_USERNAME: ${HANS_BACKEND_MATOMO_USER:-admin}
+  #    MATOMO_PASSWORD: ${HANS_BACKEND_MATOMO_PASSWORD:-adminadmin}
+  #  container_name: hans-backend-matomo-trackingexport
+  #  hostname: matomo-trackingexport
+  #  volumes:
+  #    - ./data/matomo_export:/export:rw
+  #  depends_on:
+  #    - matomo-webserver
+  #    - matomo-user-analytics
+  #    - matomo-db
+  #    - matomo-init
+  #  networks:
+  #    - data-backend-tier
 
 volumes:
   static: {}
