@@ -10,8 +10,6 @@ __status__ = "Draft"
 import os
 import io
 import json
-import subprocess
-import tempfile
 from uuid import uuid4
 from typing import List
 from http import HTTPStatus
@@ -130,72 +128,6 @@ def wrap_form_boolean(value):
         return False
     else:
         return value
-
-
-def validate_video_aspect_ratio(video_file):
-    """Validate video has valid streams using ffprobe"""
-    try:
-        # First check if ffprobe is available
-        ffprobe_path = '/usr/bin/ffprobe'
-        try:
-            subprocess.run([ffprobe_path, '-version'], capture_output=True, timeout=5)
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            print("ffprobe not found or not accessible")
-            return False, "Video validation tool (ffprobe) is not available on this system"
-        
-        # Create a temporary file to store the video data
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
-            # Write the video data to temporary file
-            video_file.seek(0)  # Reset file pointer
-            temp_file.write(video_file.read())
-            temp_file.flush()
-            temp_file_path = temp_file.name
-        
-        # Run ffprobe command to get aspect ratio information
-        cmd = [
-            ffprobe_path, 
-            '-v', 'error', 
-            '-select_streams', 'v:0', 
-            '-show_entries', 'stream=sample_aspect_ratio,display_aspect_ratio', 
-            '-of', 'json', 
-            temp_file_path
-        ]
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        
-        # Clean up temporary file
-        try:
-            os.unlink(temp_file_path)
-        except Exception as e:
-            print(f"Warning: Could not delete temporary file {temp_file_path}: {e}")
-        
-        if result.returncode != 0:
-            print(f"ffprobe error: {result.stderr}")
-            return False, "Failed to analyze video file"
-        
-        # Parse the JSON output
-        try:
-            probe_data = json.loads(result.stdout)
-        except json.JSONDecodeError as e:
-            print(f"Failed to parse ffprobe JSON output: {e}")
-            return False, "Invalid video file - corrupted or unsupported format"
-        
-        # Check if output is empty {} or streams is empty []
-        if not probe_data or not probe_data.get('streams') or len(probe_data['streams']) == 0:
-            print("No video streams found in file - invalid or corrupted video")
-            return False, "Invalid video file - no video streams detected. The video may be corrupted or in an unsupported format."
-        
-        # Video has valid streams
-        stream = probe_data['streams'][0]
-        display_aspect_ratio = stream.get('display_aspect_ratio', 'unknown')
-        print(f"Video validation passed - aspect ratio: {display_aspect_ratio}")
-        return True, f"Video is valid (aspect ratio: {display_aspect_ratio})"
-            
-    except subprocess.TimeoutExpired:
-        return False, "Video analysis timed out"
-    except Exception as e:
-        print(f"Error validating video: {e}")
-        return False, f"Error analyzing video: {str(e)}"
 
 
 def upload_meta_data(form: UploadFileForm, uuid, media_urn, slides_urn):
@@ -325,18 +257,9 @@ def upload_file(form: UploadFileForm):
 
     uuid = str(uuid4())
 
-    # Validate video aspect ratio if it's a video file
-    if form.media.mimetype.startswith("video/"):
-        print("Validating video aspect ratio...")
-        is_valid, validation_message = validate_video_aspect_ratio(form.media)
-        if not is_valid:
-            return ErrorResponse.create_custom(f"Video validation failed: {validation_message}")
-        print(f"Video validation passed: {validation_message}")
-
-    # Use the original file directly (no processing)
-    form.media.seek(0)
+    # Store media file
+    # TODO: bug is here on some media files, showing latin-1 encoding byte issue
     value_as_a_stream = io.BytesIO(form.media.read())
-
     metadata = {"X-Amz-Meta-Filename": form.media.filename, "X-Amz-Meta-Language": form.language}
 
     media_urn = "assetdb:" + "raw:" + uuid
@@ -347,12 +270,9 @@ def upload_file(form: UploadFileForm):
     else:
         media_urn = media_urn + ".mp4"
 
-    print(f"Uploading media file to assetdb with URN: {media_urn}")
     result = assetdb_connector.put_object(media_urn, value_as_a_stream, form.media.mimetype, metadata)
     if result is False:
         return ErrorResponse.create_custom("Error while uploading media file")
-    
-    print(f"Media file uploaded successfully to: {media_urn}")
 
     # Store slides file
     # TODO: maybe here is also an issue on some slide files, showing latin-1 encoding byte issue?
@@ -375,11 +295,7 @@ def upload_file(form: UploadFileForm):
     if success is False:
         return ErrorResponse.create_custom("Error while triggering airflow job")
 
-    return JsonResponse.create({
-        "success": True,
-        "uuid": uuid,
-        "processing_message": "File uploaded successfully"
-    })
+    return JsonResponse.create({"success": True})
 
 
 class UploadDocumentFileForm(BaseModel):
@@ -498,12 +414,6 @@ class DocumentStatus(BaseModel):
     file_uuid: str = Field(..., description="Document uuid, same as airflow dag run uuid")
 
 
-class UploadStatus(BaseModel):
-    """API template for upload status check"""
-
-    uuid: str = Field(..., description="Upload UUID to check status for")
-
-
 @upload_api_bp.get("/process-status/<file_uuid>")
 @jwt_required()
 def process_status(path: DocumentStatus):
@@ -543,67 +453,3 @@ def process_status(path: DocumentStatus):
         return ErrorResponse.create_custom("Error while updating document processing status")
 
     return JsonResponse.create({"status": file_status})
-
-
-@upload_api_bp.get("/upload-status/<uuid>")
-@jwt_required()
-def upload_status(path: UploadStatus):
-    """Check the upload and processing status of a media file"""
-    # Protect api to only allow checking for admin user
-    sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
-        return ErrorForbidden.create()
-
-    print(f"Check upload-status of UUID: {path.uuid}")
-
-    try:
-        mongo_connector = connector_provider.get_metadb_connector()
-        mongo_connector.connect()
-        airflow_connector = connector_provider.get_airflow_connector()
-        airflow_connector.connect()
-
-        # Get metadata from MongoDB
-        meta_urn = f"metadb:meta:post:id:{path.uuid}"
-        meta_data = mongo_connector.get_metadata(meta_urn)
-
-        if not meta_data:
-            return ErrorResponse.create_custom("Upload not found", HTTPStatus.NOT_FOUND)
-
-        # Get Airflow DAG run status
-        dag_state = airflow_connector.get_dag_run_state("hans_v1.0.3", path.uuid)
-
-        # Determine overall status
-        overall_status = "unknown"
-        processing_progress = 0
-
-        if dag_state in ["queued", "running"]:
-            overall_status = "processing"
-            processing_progress = 50  # Approximate progress during processing
-        elif dag_state == "success":
-            overall_status = "completed"
-            processing_progress = 100
-        elif dag_state == "failed":
-            overall_status = "failed"
-            processing_progress = 0
-        else:
-            overall_status = "error"
-            processing_progress = 0
-
-        # Get state from metadata if available
-        if "state" in meta_data:
-            state_info = meta_data["state"]
-            if "overall_step" in state_info:
-                overall_status = state_info["overall_step"].lower()
-            if "editing_progress" in state_info:
-                processing_progress = state_info["editing_progress"]
-
-        return JsonResponse.create({
-            "uuid": path.uuid,
-            "status": overall_status,
-            "progress": processing_progress,
-            "dag_state": dag_state,
-            "message": f"Upload is {overall_status}"
-        })
-
-    except Exception as e:
-        return ErrorResponse.create_custom(f"Error checking upload status: {str(e)}")

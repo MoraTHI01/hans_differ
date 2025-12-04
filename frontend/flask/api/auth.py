@@ -1,22 +1,15 @@
 #!/usr/bin/env python
-"""Authorization handling"""
+"""Authorization handling - LDAP Focus with Enhanced Logging & Refined Routing"""
 __author__ = "Thomas Ranzenberger"
-__copyright__ = "Copyright 2022, Technische Hochschule Nuernberg"
+__copyright__ = "Copyright 2022-2024, Technische Hochschule Nuernberg"
 __license__ = "Apache 2.0"
-__version__ = "1.0.0"
+__version__ = "1.0.8" # Incremented for refined routing/logging
 __status__ = "Draft"
-
 
 from datetime import timedelta
 from urllib.parse import quote, unquote
-from flask import jsonify, request, make_response, url_for, redirect, session
-import os
-import hmac
-import hashlib
-import time
-import jwt
-import json
-from flask_openapi3 import APIBlueprint
+from flask import jsonify, request, make_response, url_for, redirect, session, current_app
+from flask_openapi3 import APIBlueprint # Use this directly
 from flask_cors import cross_origin
 
 from flask_multipass import Multipass
@@ -27,426 +20,265 @@ from api.modules.responses import ErrorResponse, RefreshAuthenticationRequired
 from api.modules.security import SecurityConfiguration, SecurityMetaData
 
 from connectors.connector_provider import connector_provider
-from connectors.config import get_frontend_protocol, get_frontend_host_url
 
-# Use custom authlib provider for openid connect
-from api.modules.oidc import OidcAuthProvider, OidcIdentityProvider
+from api.modules.ldap_provider import LdapAuthProvider, LdapIdentityProvider
 
-# https://flask-jwt-extended.readthedocs.io/en/stable/basic_usage/
 from flask_jwt_extended import JWTManager
 from flask_jwt_extended import create_access_token, create_refresh_token
 from flask_jwt_extended import jwt_required, get_jwt_identity, decode_token
 
-# TODO: https://flask-jwt-extended.readthedocs.io/en/stable/blocklist_and_token_revoking.html#revoking-refresh-tokens
+# Define blueprint directly using APIBlueprint.
+# The name 'auth' here is critical for flask-openapi3 if it uses it for path prefixing
+# when app.register_api(auth_api_bp) is called without an explicit url_prefix there.
+# However, your URL map shows routes are at root of where blueprint is mounted.
+auth_api_bp = APIBlueprint(
+    "auth",  # Blueprint name
+    __name__,
+    abp_responses={"401": UnauthorizedResponse, "403": RefreshAuthenticationRequired},
+    abp_security=SecurityConfiguration().get_security()
+)
+
+# Provider ID constants for internal use and registration
+SIMPLE_AUTH_PROVIDER_ID = "simple_auth_provider"
+SIMPLE_IDENTITY_PROVIDER_ID = "simple_identity_provider"
+LDAP_AUTH_PROVIDER_ID = "ldap_auth_provider"
+LDAP_IDENTITY_PROVIDER_ID = "ldap_identity_provider"
+
+# These will be initialized in init_multipass_for_blueprint
+_multipass_instance = None
+_jwt_manager_instance = None
+
+# State for current providers (managed within the blueprint's context)
+_current_auth_provider_id_state = SIMPLE_AUTH_PROVIDER_ID
+_current_identity_provider_id_state = SIMPLE_IDENTITY_PROVIDER_ID
 
 
-class AuthBlueprint(APIBlueprint):
-    """Blueprint to manage authorization"""
-
-    def __init__(self, blueprint_id, name):
-        self.simple_auth_provider_id = "simple_auth_provider"
-        self.simple_identity_provider_id = "simple_identity_provider"
-        self.oidc_auth_provider_id = "oidc_auth_provider"
-        self.oidc_identity_provider_id = "oidc_identity_provider"
-        self.curr_auth_provider_id = "simple_auth_provider"
-        self.curr_identity_provider_id = "simple_identity_provider"
-        self.multipass = Multipass()
-        self.jwt_manager = None
-        super().__init__(
-            blueprint_id,
-            name,
-            abp_responses={"401": UnauthorizedResponse, "403": RefreshAuthenticationRequired},
-            abp_security=SecurityConfiguration().get_security(),
-        )
-
-    def get_auth_provider_id(self, provider):
-        """Get current auth provider id"""
-        if provider == "shib":
-            return None
-        elif provider == "oidc":
-            return self.oidc_auth_provider_id
-        elif provider == "static":
-            return self.simple_auth_provider_id
-        else:
-            return self.simple_auth_provider_id
-
-    def get_current_auth_provider_id(self):
-        """Get current auth provider id"""
-        return self.curr_auth_provider_id
-
-    def set_current_auth_provider_id(self, provider):
-        """Set current auth provider id"""
-        self.curr_auth_provider_id = self.get_auth_provider_id(provider)
-
-    def get_current_identity_provider_id(self):
-        """Get current auth provider id"""
-        return self.curr_identity_provider_id
-
-    def init(self, app):
-        """Set the multipass object for auth handling"""
-        self.multipass.register_provider(StaticAuthProvider, self.simple_auth_provider_id)
-        self.multipass.register_provider(StaticIdentityProvider, self.simple_identity_provider_id)
-        self.multipass.register_provider(OidcAuthProvider, self.oidc_auth_provider_id)
-        self.multipass.register_provider(OidcIdentityProvider, self.oidc_identity_provider_id)
-        self.multipass.init_app(app)
-        self.multipass.identity_handler(self.identity_handler)
-        self.jwt_manager = JWTManager(app)
-
-    def is_jwt_token_valid(self, token):
-        """Verify JWT token is valid"""
-        # print("is_jwt_token_valid")
-        try:
-            decode_token(token)
-            return True
-        except:
-            return False
-
-    def create_credentials_for_identity(self, identity):
-        """Create credentials for identity"""
-        # https://doku.tid.dfn.de/de:shibsp:config-slo?s[]=sessionlifetime
-        # timedelta(seconds=43200)
-        # timedelta(hours=12)
-        time_delta_access = timedelta(hours=4)
-        time_delta_refresh = timedelta(hours=6)
-        if identity["role"] == "ml-backend":
-            # Airflow user is only allowed for 2 hour,
-            # download and publish requests should not last longer than two hours
-            time_delta_access = timedelta(hours=2)
-            time_delta_refresh = timedelta(hours=2)
-        # print(f'Identity: {identity}')
-
-        # print('Creating access and refresh token')
-        access_token = create_access_token(identity=identity, expires_delta=time_delta_access)
-        if self.is_jwt_token_valid(access_token) is False:
-            print("Error: Unable to decode access token!")
-            print("Please check JWT algorithm configuration!")
-
-        refresh_token = create_refresh_token(identity=identity, expires_delta=time_delta_refresh)
-        if self.is_jwt_token_valid(refresh_token) is False:
-            print("Error: Unable to decode refresh token!")
-            print("Please check JWT algorithm configuration!")
-        return (access_token, refresh_token)
-
-    def identity_handler(self, identity_info):
-        """Handle identity request"""
-        # print("Identity Data")
-        if identity_info.provider.name == self.oidc_identity_provider_id:
-            identity_data = identity_info.provider.get_identity(identity_info.identifier)
-            # print(identity_data)
-            identity = {
-                "id": identity_data["subject-id"],
-                "username": quote(identity_data["username"]),
-                "firstName": quote(identity_data["givenName"]),
-                "lastName": quote(identity_data["sn"]),
-                "mail": quote(identity_data["mail"]),
-                "preferedLanguage": quote(identity_data["preferedLanguage"]),
-                "faculty": quote(identity_data["dfnEduPersonFieldOfStudyString"]),
-                "university": quote(identity_data["o"]),
-                "course": quote(identity_data["courseAcronymId"]),
-                "role": quote(identity_data["group"]),
-                "idp": auth_api_bp.oidc_identity_provider_id,
-                "id_token": identity_data["id_token"],
-            }
-            mongo_connector = connector_provider.get_metadb_connector()
-            mongo_connector.connect()
-            urn_meta_data = f"metadb:meta:post:identity:{identity_info.identifier}"
-            curr_meta_data = mongo_connector.get_metadata(urn_meta_data)
-            if curr_meta_data is not None:
-                mongo_connector.remove_metadata(urn_meta_data)
-            (success, urn_result) = mongo_connector.put_object(urn_meta_data, None, "application/json", identity)
-            session["success-id"] = identity_info.identifier
-            target_url = url_for("auth.login_success")
-            # mongo_connector.disconnect()
-            return redirect(target_url)
-        else:
-            # print(identity_info.data)
-            groups = identity_info.provider.get_identity_groups(identity_info.identifier)
-            identity = {
-                "id": identity_info.data["subject-id"],
-                "username": quote(identity_info.identifier),
-                "firstName": quote(identity_info.data["givenName"]),
-                "lastName": quote(identity_info.data["sn"]),
-                "mail": quote(identity_info.data["mail"]),
-                "preferedLanguage": quote(identity_info.data["preferedLanguage"]),
-                "faculty": quote(identity_info.data["dfnEduPersonFieldOfStudyString"]),
-                "university": quote(identity_info.data["o"]),
-                "course": quote(identity_info.data["courseAcronymId"]),
-                "role": quote(str(groups.pop().name)),
-                "idp": self.simple_identity_provider_id,
-                "id_token": "0815",
-            }
-            print("Response with JWT access and refresh token")
-            (access_token, refresh_token) = self.create_credentials_for_identity(identity)
-            return jsonify(access_token=access_token, refresh_token=refresh_token)
-
-
-auth_api_bp = AuthBlueprint("auth", __name__)
-
-
-@auth_api_bp.route("/login", methods=["GET", "POST"])
-def login():
-    """Login"""
-    auth = request.authorization
-    if not auth:
-        return AuthenticationRequired.create()
-    print("Login with provider: static")
-    data = {"username": auth.username, "password": auth.password}
-    auth_api_bp.set_current_auth_provider_id("static")
-    return auth_api_bp.multipass.handle_login_form(
-        auth_api_bp.multipass.auth_providers[auth_api_bp.get_current_auth_provider_id()], data
-    )
-
-
-@auth_api_bp.route("/login/moodle", methods=["POST"])
-def login_moodle():
-    """Login using a secure token from Moodle and authorize against a saved dictionary."""
-    data = request.get_json()
-    # if not data or 'payload' not in data or 'signature' not in data:
-    if not data or 'moodleToken' not in data:
-        return ErrorResponse.create_custom("Moodle token is missing.")
-
-    moodle_token = data['moodleToken']
-    
-    shared_secret = "2208195ef19556472f01a5ce09ac5342fae0018a90dd4aba40983528dbf52068".encode('utf-8')
-    
-    try:
-        decoded_payload = jwt.decode(moodle_token, shared_secret, algorithms=["HS256"])
-        # print("Decoded Moodle payload:", decoded_payload)
-        moodle_username = decoded_payload.get("email")
-
-    except jwt.ExpiredSignatureError:
-        return ErrorResponse.create_custom("Moodle token has expired.")
-    except jwt.InvalidTokenError:
-        return ErrorResponse.create_custom("Invalid Moodle token.")
-
-    try:
-        file_path = os.path.join(os.path.dirname(__file__), 'auth', 'static_auth.json')
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+def init_multipass_for_blueprint(app):
+    global _multipass_instance, _jwt_manager_instance
+    if _multipass_instance is None:
+        _multipass_instance = Multipass()
+        _multipass_instance.register_provider(StaticAuthProvider, SIMPLE_AUTH_PROVIDER_ID)
+        _multipass_instance.register_provider(StaticIdentityProvider, SIMPLE_IDENTITY_PROVIDER_ID)
+        _multipass_instance.register_provider(LdapAuthProvider, LDAP_AUTH_PROVIDER_ID)
+        _multipass_instance.register_provider(LdapIdentityProvider, LDAP_IDENTITY_PROVIDER_ID)
         
-        # print('data from static_auth.json:', data)
-
-        user_list = data.get('user', [])
-
-        saved_user_data = None  
-        for user_profile in user_list:
-            if user_profile.get('username') == moodle_username:
-                saved_user_data = user_profile 
-                break 
-
-        if saved_user_data is None:
-            return ErrorResponse.create_custom("User not authorized for this platform.")
-
-    except FileNotFoundError:
-        print(f"FATAL ERROR: static_auth.json not found at {file_path}")
-        return ErrorResponse.create_custom("Server configuration error")
-
-
-    # User was found! Creating the identity using the rich data from the dictionary. 
-    # print('saved_user_data:', saved_user_data)
-    identity = {
-        "id": saved_user_data["subject-id"],
-        "username": quote(saved_user_data["mail"]),
-        "firstName": quote(saved_user_data["givenName"]),
-        "lastName": quote(saved_user_data["sn"]),
-        "mail": quote(saved_user_data["mail"]),
-        "role": quote(saved_user_data["group"]),
-        "idp": "simple_identity_provider", 
-        "preferedLanguage": quote(saved_user_data["preferedLanguage"]),
-        "faculty": quote(saved_user_data["dfnEduPersonFieldOfStudyString"]),
-        "university": quote(saved_user_data["o"]),
-        "course": quote(saved_user_data["courseAcronymId"]),
-        "id_token": "0815"
-    }
-
-    # Create application's own JWTs
-    (access_token, refresh_token) = auth_api_bp.create_credentials_for_identity(identity)
+        _multipass_instance.init_app(app)
+        _multipass_instance.identity_handler(identity_handler_func) # Use a direct function reference
     
-    # Send the tokens back to the plugin
+    if _jwt_manager_instance is None:
+        _jwt_manager_instance = JWTManager(app)
+    
+    current_app.logger.info(f"Multipass and JWT initialized for blueprint '{auth_api_bp.name}'.")
+
+
+def get_auth_provider_id_func(provider_name_str):
+    provider_lower = provider_name_str.lower() if provider_name_str else ""
+    if provider_lower == "static":
+        return SIMPLE_AUTH_PROVIDER_ID
+    elif provider_lower == "ldap":
+        return LDAP_AUTH_PROVIDER_ID
+    else:
+        current_app.logger.warning(f"Unknown auth provider requested: {provider_name_str}")
+        return None
+
+def set_current_providers_func(provider_name_str):
+    global _current_auth_provider_id_state, _current_identity_provider_id_state
+    
+    resolved_auth_id = get_auth_provider_id_func(provider_name_str)
+    _current_auth_provider_id_state = resolved_auth_id
+    
+    if resolved_auth_id == LDAP_AUTH_PROVIDER_ID:
+        _current_identity_provider_id_state = LDAP_IDENTITY_PROVIDER_ID
+    elif resolved_auth_id == SIMPLE_AUTH_PROVIDER_ID:
+        _current_identity_provider_id_state = SIMPLE_IDENTITY_PROVIDER_ID
+    else:
+        _current_identity_provider_id_state = None
+    current_app.logger.debug(f"Current auth provider set to: {_current_auth_provider_id_state}, identity: {_current_identity_provider_id_state}")
+
+
+def is_jwt_token_valid_func(token):
+    try:
+        decode_token(token)
+        return True
+    except Exception as e: 
+        current_app.logger.error(f"JWT token validation error: {e}")
+        return False
+
+def create_credentials_for_identity_func(identity):
+    time_delta_access = timedelta(hours=4)
+    time_delta_refresh = timedelta(hours=6)
+    if identity.get("role") == "ml-backend":
+        time_delta_access = timedelta(hours=2)
+        time_delta_refresh = timedelta(hours=2)
+
+    access_token = create_access_token(identity=identity, expires_delta=time_delta_access)
+    if not is_jwt_token_valid_func(access_token): # Use the helper
+        current_app.logger.error("Unable to decode newly created access token!")
+
+    refresh_token = create_refresh_token(identity=identity, expires_delta=time_delta_refresh)
+    if not is_jwt_token_valid_func(refresh_token): # Use the helper
+        current_app.logger.error("Unable to decode newly created refresh token!")
+    return (access_token, refresh_token)
+
+# This function will be registered as the identity_handler
+def identity_handler_func(identity_info):
+    current_app.logger.debug(f"identity_handler_func called for provider name: '{identity_info.provider.name if identity_info.provider else 'None'}' and ID: '{identity_info.identifier}'")
+    identity_data_source = identity_info.data 
+    final_idp_name = identity_info.provider.name # This should be the registered ID like "ldap_identity_provider"
+
+    if not identity_data_source:
+        current_app.logger.error(f"Identity handler for '{final_idp_name}' received no data in identity_info.data.")
+        return ErrorResponse.create_custom(f"Identity processing failed for {final_idp_name}.")
+
+    # Common structure for identity
+    identity = {
+        "id": identity_data_source.get("subject-id", identity_data_source.get("username", identity_info.identifier)),
+        "username": quote(identity_data_source.get("username", identity_info.identifier)), # Fallback to identifier
+        "firstName": quote(identity_data_source.get("givenName", "")),
+        "lastName": quote(identity_data_source.get("sn", "")),
+        "mail": quote(identity_data_source.get("mail", "")),
+        "preferedLanguage": quote(identity_data_source.get("preferedLanguage", "en")),
+        "faculty": quote(identity_data_source.get("dfnEduPersonFieldOfStudyString", "")), # These might be specific to IdP
+        "university": quote(identity_data_source.get("o", "")),
+        "course": quote(identity_data_source.get("courseAcronymId", "")),
+        "role": quote(identity_data_source.get("group", "user")), # 'group' from LdapIdentityProvider or static config
+        "idp": final_idp_name,
+        "id_token": "N/A" if final_idp_name != "oidc_identity_provider" else identity_data_source.get("id_token", "N/A_OIDC_MISSING")
+    }
+    
+    # If it was static provider, it might have groups differently
+    if final_idp_name == SIMPLE_IDENTITY_PROVIDER_ID:
+        groups = _multipass_instance.identity_providers[SIMPLE_IDENTITY_PROVIDER_ID].get_identity_groups(identity_info.identifier)
+        identity["role"] = quote(str(groups.pop().name) if groups else "user")
+
+    current_app.logger.debug(f"Identity for {identity['username']} (IDP: {final_idp_name}) processed, creating JWTs.")
+    (access_token, refresh_token) = create_credentials_for_identity_func(identity)
     return jsonify(access_token=access_token, refresh_token=refresh_token)
 
-# @auth_api_bp.route("/login/moodle", methods=["POST"])
-# def login_moodle():
-#     """Login using a secure token from a Moodle plugin."""
 
-#     # Get the data sent from the Moodle plugin
-#     data = request.get_json()
-#     if not data or 'payload' not in data or 'signature' not in data:
-#         return ErrorResponse.create_custom("Invalid Moodle token request"), 400 
-
-#     payload_str = data['payload']
-#     moodle_signature = data['signature']
+@auth_api_bp.route("/login", methods=["POST"], strict_slashes=False) 
+def login_static_basic_auth():
+    """Login using static provider (HTTP Basic Auth). Expects Basic Auth header."""
+    current_app.logger.debug(f"Request to /login (static basic auth). Method: {request.method}")
+    auth = request.authorization
+    if not auth or not auth.username or not auth.password:
+        current_app.logger.warning("/login - Basic auth credentials missing.")
+        return AuthenticationRequired.create()
     
-#     # Verify the signature 
-#     # shared_secret = os.environ.get('MOODLE_SHARED_SECRET').encode('utf-8')
-#     shared_secret = "2208195ef19556472f01a5ce09ac5342fae0018a90dd4aba40983528dbf52068".encode('utf-8')
+    data = {"username": auth.username, "password": auth.password}
+    set_current_providers_func("static") 
     
-#     expected_signature = hmac.new(shared_secret, payload_str.encode('utf-8'), hashlib.sha256).hexdigest()
+    static_auth_provider_instance = _multipass_instance.auth_providers.get(SIMPLE_AUTH_PROVIDER_ID)
+    if not static_auth_provider_instance:
+        current_app.logger.error("Static Auth Provider instance not found for /login.")
+        return ErrorResponse.create_custom("Static provider not configured.")
     
-#     if not hmac.compare_digest(expected_signature, moodle_signature):
-#         return UnauthorizedResponse.create() 
-    
-#     print("Moodle token signature verified.")
-#     # Signature is valid! Now, process the payload.
-#     import json
-#     user_data = json.loads(payload_str)
-    
-#     # Optional but recommended: Check if the token has expired
-#     if 'exp' in user_data and user_data['exp'] < time.time():
-#         return ErrorResponse.create_custom("Moodle token has expired"), 401
-    
-#     # Create the standard user identity object
-#     # We use unquote(' ') for any potentially empty fields from Moodle
-#     print('checkpoint1')
-#     identity = {
-#         "id": user_data.get("id"), #"19661c01-d8c8-4a24-8071-04da5f738433@testscope.dfn.de",#user_data.get("id"),
-#         # "username": quote(user_data.get("username", "")),
-#         "username": "raviteja.boddu@thi.de",
-#         "firstName": quote(user_data.get("firstName", "")),
-#         "lastName": quote(user_data.get("lastName", "")),
-#         "mail": quote(user_data.get("email", "")),
-#         "role": quote("admin"),
-#         "idp": "simple_identity_provider",#"moodle",
-#         "preferedLanguage": quote("de"),
-#         "faculty": quote("Informatik"),
-#         "university": quote("Technische Hochschule Ingolstadt"),
-#         "course": quote("*"),
-#         "id_token": "0815" #moodle-token
-#     }
-
-#     #  identity = {
-#     #             "id": identity_info.data["subject-id"],
-#     #             "username": quote(identity_info.identifier),
-#     #             "firstName": quote(identity_info.data["givenName"]),
-#     #             "lastName": quote(identity_info.data["sn"]),
-#     #             "mail": quote(identity_info.data["mail"]),
-#     #             "preferedLanguage": quote(identity_info.data["preferedLanguage"]),
-#     #             "faculty": quote(identity_info.data["dfnEduPersonFieldOfStudyString"]),
-#     #             "university": quote(identity_info.data["o"]),
-#     #             "course": quote(identity_info.data["courseAcronymId"]),
-#     #             "role": quote(str(groups.pop().name)),
-#     #             "idp": self.simple_identity_provider_id,
-#     #             "id_token": "0815",
-#     #         }
-    
-#     # Create application's own JWTs
-#     (access_token, refresh_token) = auth_api_bp.create_credentials_for_identity(identity)
-    
-#     # Send the tokens back to the plugin
-#     return jsonify(access_token=access_token, refresh_token=refresh_token)
+    current_app.logger.debug(f"Calling handle_login_form for Static (Basic Auth) with user: {data['username']}")
+    return _multipass_instance.handle_login_form(static_auth_provider_instance, data)
 
 
-@auth_api_bp.route("/login/", methods=["GET", "POST"])
-@auth_api_bp.route("/login/<provider>", methods=["GET", "POST"])
-def login_provider(provider=None):
-    """Login using provider, e.g. shib for shibboleth"""
-    if provider is not None:
-        provider_name = str(provider)
-        print(f"Login with provider: {provider_name}")
-        auth_api_bp.set_current_auth_provider_id(provider_name)
-        provider_id = auth_api_bp.get_current_auth_provider_id()
-        if provider_id is not None:
-            response = auth_api_bp.multipass.process_login(provider_id)
-            response.headers.add("Access-Control-Allow-Origin", "*")  # Add CORS headers
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            response.headers.add("Access-Control-Expose-Headers", "Access-Control-Allow-Origin")
-            response.status_code = 200
+@auth_api_bp.route("/login/<provider_name_from_url>", methods=["POST"], strict_slashes=False) 
+def login_via_provider_id(provider_name_from_url=None):
+    """Login using a specified provider (e.g., LDAP). Expects JSON body with username/password."""
+    current_app.logger.debug(f"login_via_provider_id function entered. provider_name_from_url: '{provider_name_from_url}', Method: {request.method}")
+
+    if not provider_name_from_url:
+        current_app.logger.warning("login_via_provider_id called with no provider name.")
+        return ErrorResponse.create_custom("Provider name must be specified in the URL.")
+
+    set_current_providers_func(provider_name_from_url)
+    actual_auth_provider_id = _current_auth_provider_id_state # Use the state variable
+
+    current_app.logger.debug(f"login_via_provider_id - Resolved actual_auth_provider_id: {actual_auth_provider_id}")
+
+    if actual_auth_provider_id == LDAP_AUTH_PROVIDER_ID:
+        if request.method == "POST": # This route now only handles POST for LDAP
+            current_app.logger.debug("login_via_provider_id - LDAP POST request received.")
+            login_data = request.get_json(silent=True) 
+            if login_data is None:
+                current_app.logger.error("login_via_provider_id - LDAP POST: Invalid JSON or Content-Type.")
+                return ErrorResponse.create_custom("Invalid request: JSON body expected.")
+            if 'username' not in login_data or 'password' not in login_data:
+                current_app.logger.error("login_via_provider_id - LDAP POST: Missing username or password.")
+                return ErrorResponse.create_custom("Username and password required.")
+            
+            ldap_auth_provider_instance = _multipass_instance.auth_providers.get(LDAP_AUTH_PROVIDER_ID)
+            if not ldap_auth_provider_instance:
+                current_app.logger.error(f"LDAP Auth Provider instance ('{LDAP_AUTH_PROVIDER_ID}') not found.")
+                return ErrorResponse.create_custom("LDAP provider not configured on server.")
+            
+            current_app.logger.debug(f"login_via_provider_id - Calling handle_login_form for LDAP user: {login_data.get('username')}")
+            # handle_login_form will call LdapAuthProvider.process_login, then identity_handler_func
+            response = _multipass_instance.handle_login_form(ldap_auth_provider_instance, login_data) 
+            current_app.logger.debug(f"login_via_provider_id - LDAP handle_login_form response status: {response.status_code if hasattr(response, 'status_code') else 'N/A'}")
             return response
-        else:
-            return ErrorResponse.create_custom("Provider not found!")
-    else:
-        return ErrorResponse.create_custom("Provider name empty!")
+        else: # Should not be reached if route is POST only, but defensive
+            return ErrorResponse.create_custom("GET not supported for this LDAP login endpoint.")
+            
+    # Add other specific provider handlers here if needed, e.g. /login/static_json_post
+    # elif actual_auth_provider_id == SIMPLE_AUTH_PROVIDER_ID: ...
+            
+    else: 
+        current_app.logger.warning(f"login_via_provider_id - Provider '{provider_name_from_url}' (resolved to '{actual_auth_provider_id}') is not supported or unknown.")
+        return ErrorResponse.create_custom(f"Login provider '{provider_name_from_url}' not supported.")
 
 
-@auth_api_bp.route("/login-oidc-success")
-def login_success():
-    if "success-id" in session:
-        mongo_connector = connector_provider.get_metadb_connector()
-        mongo_connector.connect()
-        urn_meta_data = f"metadb:meta:post:identity:{session['success-id']}"
-        curr_meta_data = mongo_connector.get_metadata(urn_meta_data)
-        if curr_meta_data is None:
-            return ErrorResponse.create_custom("Not allowed!")
-        (access_token, refresh_token) = auth_api_bp.create_credentials_for_identity(curr_meta_data)
-        session["success-id"] = None
-        # mongo_connector.remove_metadata(urn_meta_data)
-        # mongo_connector.disconnect()
-        return jsonify(access_token=access_token, refresh_token=refresh_token)
-    else:
-        return ErrorResponse.create_custom("Not allowed!")
-
-
-@auth_api_bp.route("/logout", methods=["GET", "POST"])
+@auth_api_bp.route("/logout", methods=["POST"], strict_slashes=False) # Changed to POST only for consistency
 @jwt_required()
 def logout():
-    """Logout"""
+    """Logout user."""
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
-    if sec_meta_data.idp == auth_api_bp.oidc_identity_provider_id:
-        auth_provider = auth_api_bp.multipass.auth_providers[auth_api_bp.oidc_auth_provider_id]
-        print("Logout OIDC")
-        # Redirect post logout url is not working so logout-oidc-success is not called,
-        # but we erase the token before on client vue side in the auth store
-        response = auth_provider.process_logout(
-            get_frontend_protocol(), get_frontend_host_url(), url_for("auth.logout_success"), sec_meta_data.id_token
-        )
-        response.headers.add("Access-Control-Allow-Origin", "*")  # Add CORS headers
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        response.headers.add("Access-Control-Expose-Headers", "Access-Control-Allow-Origin")
-        response.status_code = 200
-        return response
-    else:
-        print("Logout")
-        return jsonify(access_token="", refresh_token="")
+    idp_type = sec_meta_data.idp 
+    current_app.logger.debug(f"/logout called for IDP type: {idp_type}, user: {sec_meta_data.username}")
+    
+    # For JWT-based auth, logout is primarily client-side token removal.
+    # Backend can implement token blocklisting if needed.
+    # Here, we just acknowledge and confirm.
+    current_app.logger.info(f"Logout processed for user: {sec_meta_data.username}, IDP: {idp_type}")
+    return jsonify(message="Successfully logged out", access_token="", refresh_token="")
 
 
-@auth_api_bp.route("/logout-oidc-success")
-def logout_success():
-    print("OIDC logout success")
-    return jsonify(access_token="", refresh_token="")
-
-
-@auth_api_bp.route("/sso-providers", methods=["GET"])
+@auth_api_bp.route("/sso-providers", methods=["GET"], strict_slashes=False)
 def get_sso_providers():
-    print("SSO providers")
-    auth_provider = auth_api_bp.multipass.auth_providers[auth_api_bp.oidc_auth_provider_id]
-    shibboleth_meta = auth_provider.shibboleth_meta_data
-    sso_provider = [
-        {
-            "id": "oidc",  # Currently we map oidc to oidc_auth_provider_id
-            "o": shibboleth_meta["o"],
-            "schacHomeOrganization": shibboleth_meta["schacHomeOrganization"],
-            "preferedLanguage": shibboleth_meta["preferedLanguage"],
-        }
-    ]
-    return jsonify(sso_provider=sso_provider)
+    """Lists available SSO providers and their metadata."""
+    sso_providers_list = []
+    current_app.logger.debug("/sso-providers endpoint called.") 
+    
+    # Check for LDAP provider
+    if LDAP_AUTH_PROVIDER_ID in _multipass_instance.auth_providers:
+        current_app.logger.debug(f"LDAP provider '{LDAP_AUTH_PROVIDER_ID}' found for /sso-providers.")
+        try:
+            ldap_org_name = current_app.config.get('LDAP_ORGANIZATION_NAME', "University LDAP") # Fallback name
+            ldap_domain = current_app.config.get('LDAP_DOMAIN', "") 
+            sso_providers_list.append({
+                "id": "ldap", 
+                "o": ldap_org_name,
+                "schacHomeOrganization": ldap_domain,
+                "preferedLanguage": current_app.config.get('LDAP_PREFERED_LANGUAGE', "de") 
+            })
+        except Exception as e: 
+            current_app.logger.error(f"Error processing LDAP provider for /sso-providers list: {e}")
+    else:
+        current_app.logger.debug(f"LDAP provider ID '{LDAP_AUTH_PROVIDER_ID}' NOT found for /sso-providers list.")
+   
+    current_app.logger.debug(f"Final sso_providers_list: {sso_providers_list}")
+    return jsonify(sso_provider=sso_providers_list)
 
 
-@auth_api_bp.route("/refresh", methods=["POST"])
-@jwt_required(refresh=True)
+@auth_api_bp.route("/refresh", methods=["POST"], strict_slashes=False)
+@jwt_required(refresh=True) 
 def refresh():
-    """Refresh access token"""
-    # sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
-    # if not sec_meta_data.check_identity_is_valid():
-    #    return UnauthorizedResponse.create()
-    print("Refresh Token")
-    # TODO: https://flask-jwt-extended.readthedocs.io/en/stable/blocklist_and_token_revoking.html#revoking-refresh-tokens
+    """Refresh access token using a valid refresh token."""
+    current_app.logger.debug("/refresh endpoint called.")
     try:
-        identity = get_jwt_identity()
-        (a_token, _) = auth_api_bp.create_credentials_for_identity(identity)
-        return jsonify(access_token=a_token)  # , refresh_token=r_token)
-    except:
-        return ErrorResponse.create_custom("Error refreshing access token")
-
-@auth_api_bp.route("/user_info", methods=["GET"])
-@jwt_required()
-def user_info():
-    """User info endpoint"""
-    print("User info endpoint called!")
-    try:
-        identity = get_jwt_identity()
-        return jsonify(identity)
+        current_user_identity = get_jwt_identity() 
+        if not current_user_identity:
+            current_app.logger.error("/refresh - Invalid refresh token: No identity.")
+            return ErrorResponse.create_custom("Invalid refresh token.")
+        (new_access_token, _) = create_credentials_for_identity_func(current_user_identity)
+        current_app.logger.debug("/refresh - New access token created.")
+        return jsonify(access_token=new_access_token)
     except Exception as e:
-        print(f"Error getting user info: {str(e)}")
-        return ErrorResponse.create_custom("Error getting user info")
+        current_app.logger.error(f"/refresh - Error: {e}")
+        return ErrorResponse.create_custom("Error refreshing access token.")
+

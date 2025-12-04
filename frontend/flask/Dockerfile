@@ -5,7 +5,6 @@ RUN apt-get -y update && apt-get -y upgrade \
     python3-dev \
     python3-pip \
     python3-venv \
-    ffmpeg \
  && apt-get -y clean \
  && apt-get -y autoremove \
  && rm -rf /var/lib/apt/lists/*
