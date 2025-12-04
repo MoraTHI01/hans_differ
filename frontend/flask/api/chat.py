@@ -19,12 +19,15 @@ from flask_openapi3 import APIBlueprint, Tag
 from pydantic import BaseModel, Field
 
 from api.modules.metadata_provider import metadata_provider
-from api.modules.connectors.connector_provider import connector_provider
+
+from connectors.connector_provider import connector_provider
+from llm.schema_base import MultipleChoiceQuestion
+from llm.message import Message, MessageContent, TextContent
+from llm.helpers import tokenizers_normalize_text
+
 from api.modules.responses import ErrorForbidden, ErrorNotFound, UnauthorizedResponse, RefreshAuthenticationRequired
 from api.modules.responses import ErrorResponse, JsonResponse
 from api.modules.security import SecurityConfiguration, SecurityMetaData
-from api.modules.message import Message
-from api.modules.schema import MultipleChoiceQuestion
 
 
 chat_api_bp = APIBlueprint(
@@ -56,6 +59,19 @@ class MessageRequest(BaseModel):
     data: Message = Field(None, description="Message object")
 
 
+class McqRequest(BaseModel):
+    """API template for a multiple choice question request"""
+
+    uuid: str = Field(None, description="UUID of message")
+    language: str = Field(None, description="Language")
+    difficulty: str = Field(None, description="Difficulty, see prompt base e.g. medium or mittel")
+    context: str = Field(None, description="Context for generating the question")
+    contextUuid: str = Field(None, description="Context UUID")
+    avoid: bool = Field(None, description="Enable avoiding already generated questions")
+    avoidQuestions: str = Field(None, description="Questions to avoid")
+    reasoning: bool = Field(None, description="Reasoning mode")
+
+
 # REQUESTS FROM FRONTEND
 
 
@@ -77,48 +93,124 @@ def message_adapt_context(body: MessageRequest):
         embedding_connector = connector_provider.get_embedding_connector()
         if not embedding_connector.connect():
             return ErrorResponse.create_custom("Error while connecting to text embedding service!")
-        query_vector = embedding_connector.post_embedding(body.data)
+        is_multimodal = embedding_connector.is_multimodal()
+        if is_multimodal is True:
+            print("Embeddings with multimodal support detected!", flush=True)
+        query_vector = embedding_connector.gen_embedding_for_text(body.data.content[0].content[0].text)
 
         # Connect to opensearch connector and get most similar text chunks for user query
         opensearch_connector = connector_provider.get_opensearch_connector()
         if not opensearch_connector.connect():
             return ErrorResponse.create_custom("Error while connecting to text opensearch service!")
-        lecture_id = body.data.contextUuid
-        search_results = opensearch_connector.vector_search_in_specific_lectures(
-            query_vector, lecture_ids=[lecture_id], num_results=4
-        )
-        slides_vector_index = opensearch_connector.slides_vector_index
-        search_results_images = opensearch_connector.vector_search_in_specific_lectures(
-            query_vector, lecture_ids=[lecture_id], num_results=4, index=slides_vector_index
-        )
 
-        final_text = ""
-        skip_other_images = False
-        if body.data.useVision is True or body.data.useVisionSnapshot is True:
-            media_item = metadata_provider.get_media_metadata(body.data.contextUuid, "uuid")
+        if body.data.useChannelContext is False:
+            lecture_id = body.data.contextUuid
+            search_results = opensearch_connector.vector_search_in_specific_lectures(
+                query_vector, lecture_ids=[lecture_id], num_results=4
+            )
+            slides_vector_index = opensearch_connector.slides_vector_index
+            search_results_images = opensearch_connector.vector_search_in_specific_lectures(
+                query_vector, lecture_ids=[lecture_id], num_results=4, index=slides_vector_index
+            )
+
+            final_text = ""
+            skip_other_images = False
+            if body.data.useVision is True or body.data.useVisionSnapshot is True:
+                media_item = metadata_provider.get_media_metadata(body.data.contextUuid, "uuid")
+                assetdb_connector = connector_provider.get_assetdb_connector()
+                assetdb_connector.connect()
+                vllm_connector = connector_provider.get_vllm_connector()
+                if not vllm_connector.connect():
+                    return ErrorResponse.create_custom("Error while connecting to vllm webservice!")
+                (image_context_str, _) = vllm_connector.gen_image_context(body.data, assetdb_connector, media_item)
+                if len(image_context_str) > 0:
+                    final_text = image_context_str
+                    skip_other_images = True
+
+            # Prepare response, incl. retrieved texts with citation hints []
+            if skip_other_images is False:
+                if search_results is not None:
+                    for n, search_res in enumerate(search_results):
+                        text = search_res["text"].strip()
+                        final_text += f" - [{str(n)}] {text} {ending}"
+                if search_results_images is not None:
+                    for n, search_res in enumerate(search_results_images):
+                        text = search_res["text"].strip()
+                        # use real pagenumber derived from chunk index to find and load slide in frontend vue
+                        page = str(search_res["chunk_index"] + 1 + 100)
+                        final_text += f" - [{page}] {text} {ending}"
+            final_message = body.data.model_dump()
+            final_message["context"] = final_text
+            result = {"data": [{"type": "RetrievalResult", "result": [final_message]}]}
+        else:
+            # Connect to opensearch connector and get most similar text chunks for user query
+            mongo_connector = connector_provider.get_metadb_connector()
+            if not mongo_connector.connect():
+                return ErrorResponse.create_custom("Error while connecting to metadb service!")
             assetdb_connector = connector_provider.get_assetdb_connector()
-            assetdb_connector.connect()
-            vllm_connector = connector_provider.get_vllm_connector()
-            if not vllm_connector.connect():
-                return ErrorResponse.create_custom("Error while connecting to vllm webservice!")
-            (image_context_str, _) = vllm_connector.gen_image_context(body.data, assetdb_connector, media_item)
-            if len(image_context_str) > 0:
-                final_text = image_context_str
-                skip_other_images = True
+            if not assetdb_connector.connect():
+                return ErrorResponse.create_custom("Error while connecting to assetdb service!")
+            channel_id = body.data.contextUuid
+            channel_meta_data = mongo_connector.get_channel_metadata_by_course_id(channel_id)
+            res_media_items = mongo_connector.get_media_metadata_by_course_acronym(channel_meta_data["course_acronym"])
+            if res_media_items is None:
+                print("Error: Media items for channel not found! Empty res_media_items!")
+                return ErrorResponse.create_custom("Error while searching media items for channel!")
+            res_media_items_list = list(res_media_items)
+            if res_media_items_list is None or len(res_media_items_list) < 1:
+                print("Error: Media items for survey not found!")
+                return ErrorResponse.create_custom("Error while searching media items for channel!")
+            lecture_ids = []
+            for res_media_item in res_media_items_list:
+                lecture_ids.append(res_media_item["uuid"])
+            # TODO: use full summaries or only text segments similar to input?
+            # summary vectors are currently created for German. TODO: Check multilingual?
+            summaries_vector_index = opensearch_connector.vector_index
+            search_results = opensearch_connector.vector_search_in_specific_lectures(
+                query_vector, lecture_ids=lecture_ids, num_results=4, index=summaries_vector_index
+            )
+            if search_results is None:
+                final_message = body.data.model_dump()
+                final_message["context"] = "No related videos found."
+                result = {"data": [{"type": "RetrievalResult", "result": [final_message]}]}
+                return JsonResponse.create_json_string_response(json.dumps(result))
+            # TODO: summary vectors without text need to query for each lecture id the summary here and add it
+            # adapt airflow to store directly the text, to optimize execution
+            summarytexts = []
+            final_found_ids = []
+            for res in search_results:
+                tempid = res["lecture_id"]
+                for res_media_item in res_media_items_list:
+                    if res_media_item["uuid"] == tempid and tempid not in final_found_ids:
+                        if body.data.content[0].language == "en":
+                            summary_result = assetdb_connector.get_object(res_media_item["summary_result_en"])
+                        elif body.data.content[0].language == "de":
+                            summary_result = assetdb_connector.get_object(res_media_item["summary_result_de"])
+                        else:
+                            summary_result = assetdb_connector.get_object(res_media_item["summary_result_en"])
+                        summary_data = json.loads(summary_result.data)
+                        summary_context = (
+                            tokenizers_normalize_text(summary_data["result"][0]["summary"].strip())
+                            .encode("ascii", "ignore")
+                            .decode()
+                            .replace("\n", " ")
+                        )
+                        summarytexts.append("Video '" + res_media_item["title"].strip() + "': " + summary_context)
+                        final_found_ids.append(tempid)
+            # TODO: add documents to context
+            # search_results_documents = opensearch_connector.vector_search_in_specific_documents(
+            #     query_vector, document_ids=[lecture_id], num_results=4
+            # )
+            final_text = ""
+            if summarytexts is not None:
+                for n, search_res in enumerate(summarytexts):
+                    text = search_res.strip()
+                    final_text += f" - [{str(n)}] {text} {ending}"
+            final_message = body.data.model_dump()
+            final_message["context"] = final_text
+            final_message["mediaContextUuids"] = final_found_ids
+            result = {"data": [{"type": "RetrievalResult", "result": [final_message]}]}
 
-        # Prepare response, incl. retrieved texts with citation hints []
-        if skip_other_images is False:
-            for n, search_res in enumerate(search_results):
-                text = search_res["text"].strip()
-                final_text += f" - [{str(n)}] {text} {ending}"
-            for n, search_res in enumerate(search_results_images):
-                text = search_res["text"].strip()
-                # use real pagenumber derived from chunk index to find and load slide in frontend vue
-                page = str(search_res["chunk_index"] + 1 + 100)
-                final_text += f" - [{page}] {text} {ending}"
-        final_message = body.data.model_dump()
-        final_message["context"] = final_text
-        result = {"data": [{"type": "RetrievalResult", "result": [final_message]}]}
         # print(json.dumps(result))
         return JsonResponse.create_json_string_response(json.dumps(result))
     else:
@@ -172,7 +264,10 @@ def message_send(body: MessageRequest):
         result = vllm_connector.post_vllm(body.data, assetdb_connector, media_item)
         print("VLlmResult")
     else:
-        llm_connector = connector_provider.get_llm_connector()
+        if body.data.reasoning is True:
+            llm_connector = connector_provider.get_rllm_connector()
+        else:
+            llm_connector = connector_provider.get_llm_connector()
         if not llm_connector.connect():
             return ErrorResponse.create_custom("Error while connecting to llm webservice!")
         # print(json.dumps(llm_connector.get_info()))
@@ -204,7 +299,10 @@ def message_send_stream(body: MessageRequest):
             content_type="text/event-stream",
         )
     else:
-        llm_connector = connector_provider.get_llm_connector()
+        if body.data.reasoning is True:
+            llm_connector = connector_provider.get_rllm_connector()
+        else:
+            llm_connector = connector_provider.get_llm_connector()
         if not llm_connector.connect():
             return ErrorResponse.create_custom("Error while connecting to llm webservice!")
         return Response(stream_with_context(llm_connector.post_llm_stream(body.data)), content_type="text/event-stream")
@@ -212,7 +310,7 @@ def message_send_stream(body: MessageRequest):
 
 @chat_api_bp.post("/sendMultipleChoiceQuestionRequest", tags=[message_request_multiple_choice_question_tag])
 @jwt_required()
-def message_multiple_choice_question_request(body: MessageRequest):
+def message_multiple_choice_question_request(body: McqRequest):
     """Fetch markers of urn and provide to vue"""
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
@@ -220,13 +318,40 @@ def message_multiple_choice_question_request(body: MessageRequest):
     # Protect api from access of airflow ml-backend users
     if sec_meta_data.check_user_has_roles(["ml-backend"]):
         return ErrorForbidden.create()
-    llm_connector = connector_provider.get_llm_connector()
+    if body.reasoning is True:
+        llm_connector = connector_provider.get_rllm_connector()
+    else:
+        llm_connector = connector_provider.get_llm_connector()
     if not llm_connector.connect():
         return ErrorResponse.create_custom("Error while connecting to llm webservice!")
     # print(json.dumps(llm_connector.get_info()))
-    result = llm_connector.post_llm(body.data, MultipleChoiceQuestion.model_json_schema())
+
+    request_message = Message()
+    content = MessageContent()
+    content.language = body.language
+    text_content = TextContent(
+        type="text",
+        text=llm_connector.prompt_base.get_questionaire_prompt(
+            difficulty=body.difficulty,
+            context_data=body.context,
+            avoid=body.avoid,
+            avoid_questions=body.avoidQuestions,
+            lang=body.language,
+        ),
+    )
+    content.content = [text_content]
+    request_message.content = [content]
+    request_message.contextUuid = body.contextUuid
+    request_message.useContext = False
+    request_message.useContextAndCite = False
+    request_message.useTranslate = False
+    request_message.stream = False
+    request_message.history = []
+    request_message.reasoning = body.reasoning
+
+    result = llm_connector.post_llm(request_message, MultipleChoiceQuestion.model_json_schema())
     print("LlmMultipleChoiceQuestionResult")
-    # print(json.dumps(result))
+    # print(result)
     return JsonResponse.create_json_string_response(json.dumps(result))
 
 
@@ -245,13 +370,19 @@ def get_status():
     #    return ErrorForbidden.create()
     llm_connector = connector_provider.get_llm_connector()
     vllm_connector = connector_provider.get_vllm_connector()
+    llm_reasoning_connector = connector_provider.get_rllm_connector()
     translation_connector = connector_provider.get_translation_connector()
     embedding_connector = connector_provider.get_embedding_connector()
     request_llm_service = llm_connector.request_service()
     request_vllm_service = vllm_connector.request_service()
+    request_rllm_service = llm_reasoning_connector.request_service()
     request_translation_service = translation_connector.request_service()
     request_embedding_service = embedding_connector.request_service()
-    if (request_llm_service or request_vllm_service) and request_translation_service and request_embedding_service:
+    if (
+        (request_llm_service or request_vllm_service or request_rllm_service)
+        and request_translation_service
+        and request_embedding_service
+    ):
         result = {"status": "RUNNING"}
     else:
         result = {"status": "STARTUP"}
@@ -272,6 +403,8 @@ def get_info():
     llm_info = llm_connector.get_info()
     vllm_connector = connector_provider.get_vllm_connector()
     vllm_info = vllm_connector.get_info()
+    llm_reasoning_connector = connector_provider.get_rllm_connector()
+    llm_reasoning_info = llm_reasoning_connector.get_info()
     translation_connector = connector_provider.get_translation_connector()
     translation_info = translation_connector.get_info()
     embedding_connector = connector_provider.get_embedding_connector()
@@ -281,8 +414,9 @@ def get_info():
         "services": [
             {"type": "llm", "result_index": 0, "info": llm_info},
             {"type": "vllm", "result_index": 1, "info": vllm_info},
-            {"type": "embedding", "result_index": 2, "info": embedding_info},
-            {"type": "translation", "result_index": 3, "info": translation_info},
+            {"type": "rllm", "result_index": 2, "info": llm_reasoning_info},
+            {"type": "embedding", "result_index": 3, "info": embedding_info},
+            {"type": "translation", "result_index": 4, "info": translation_info},
         ],
     }
 

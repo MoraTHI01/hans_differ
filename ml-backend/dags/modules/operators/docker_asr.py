@@ -196,7 +196,7 @@ def op_docker_asr_engine_remote_whisper_s2t(
     if "use_orchestrator" in config:
         use_orchestrator = config["use_orchestrator"]
 
-    conn_config = get_connection_config("asr_engine_remote_whisper_s2t")
+    conn_config = get_connection_config("transcription_remote")
     remote_host = conn_config["host"]
     remote_port = str(conn_config["port"])
     remote_connection = remote_host + ":" + remote_port

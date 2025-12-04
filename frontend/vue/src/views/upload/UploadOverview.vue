@@ -2,7 +2,26 @@
   <HeaderRow />
   <LogoAndSearchbarRow :placeholder="t('HomeView.searchplaceholder')" :showSearch="false" :showProgress="false" />
   <div class="main-container">
-    <MenuBanner :menutext="t('UploadOverviewView.menutext')" />
+    <div v-if="userChannel == null" class="col">
+      <MenuBanner :menutext="t('UploadOverviewView.menutext')" />
+    </div>
+    <div v-else class="col d-flex">
+      <MenuBanner
+        class="col-10"
+        :menutext="t('UploadOverviewView.menutext')"
+        :submenu="true"
+        :submenutext="userChannel.course_acronym"
+        :menuroute="'upload-channel'"
+      >
+      </MenuBanner>
+      <div class="col d-flex">
+        <ChannelSettingsWindow
+          :channelItem="userChannel"
+          @channelSettingsWindowRefresh="handleChannelSettingsWindowRefresh($event)"
+          @channelSettingsWindowClosed="handleChannelSettingsWindowClosed($event)"
+        ></ChannelSettingsWindow>
+      </div>
+    </div>
     <div v-if="isLoading" class="row sub-container media-load-container">
       <LoadingBar class="media-loading" />
     </div>
@@ -14,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import ChannelSettingsWindow from "@/components/ChannelSettingsWindow.vue";
 import LoadingBar from "@/components/LoadingBarComponent.vue";
 import HeaderRow from "@/components/HeaderRow.vue";
 import BottomRow from "@/components/BottomRow.vue";
@@ -22,6 +42,8 @@ import LogoAndSearchbarRow from "@/components/LogoAndSearchbarRow.vue";
 import MenuBanner from "@/components/MenuBanner.vue";
 
 import {useI18n} from "vue-i18n";
+import {useChannelStore} from "@/stores/channels";
+import type {ChannelItem} from "@/data/ChannelItem";
 import {useMediaStore} from "@/stores/media";
 import {useMessageStore} from "@/stores/message";
 import {onBeforeUnmount, ref, watch} from "vue";
@@ -33,9 +55,11 @@ matomo_trackpageview();
 const {t, locale} = useI18n({useScope: "global"});
 const mediaItems = ref<MediaItem[]>([]);
 
+const channelStore = useChannelStore();
 const store = useMediaStore();
 const messageStore = useMessageStore();
 const isLoading = ref(true);
+const userChannel = ref(null);
 messageStore.setServicesRequired(true);
 loadMedia(true);
 
@@ -47,7 +71,8 @@ function loadMedia(first_load: boolean = false) {
     isLoading.value = true;
   }
   messageStore.fetchServiceStatus();
-  store.loadUploadedMedia().then(() => {
+  userChannel.value = channelStore.getCurrentUserChannel();
+  store.loadUploadedMedia(userChannel.value.uuid, userChannel.value.course_acronym).then(() => {
     mediaItems.value = Array.from(store.getUploadedMedia);
     isLoading.value = false;
 
@@ -61,6 +86,14 @@ function loadMedia(first_load: boolean = false) {
 onBeforeUnmount(() => {
   messageStore.setServicesRequired(false);
 });
+
+const handleChannelSettingsWindowClosed = (val) => {
+  loadMedia(true);
+};
+
+const handleChannelSettingsWindowRefresh = (val) => {
+  loadMedia(true);
+};
 </script>
 
 <style scoped>

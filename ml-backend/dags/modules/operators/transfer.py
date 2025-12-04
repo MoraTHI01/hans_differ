@@ -16,10 +16,6 @@ from airflow import DAG
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-# Specify minio version to be used in all PythonVirtualenvOperator
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 class HansType(Enum):
     """
     Fetch mode to generate pre signed url
@@ -331,9 +327,9 @@ def download_and_store_local(ext_metadb_urn, ext_input_files_json, ext_output_co
     from airflow.exceptions import AirflowFailException
     from io import BytesIO
     from urllib.request import urlopen
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.minio_connector import MinioConnectorFetchUrlMode
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.connector_provider import connector_provider
+    from connectors.minio_connector import MinioConnectorFetchUrlMode
+    from connectors.storage_connector import StorageConnector
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.storage import create_url
     from modules.operators.transfer import HansType
@@ -475,7 +471,12 @@ def op_download_and_store_local(
         task_id=gen_task_id(dag_id, "op_download_and_store_local", task_id_suffix),
         python_callable=download_and_store_local,
         op_args=[ext_metadb_urn, ext_input_files_json, ext_output_config_json],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "requests",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -582,8 +583,8 @@ def download_and_store_remote(ext_output_config_json, artefact, artefact_downloa
     import requests
     from airflow.exceptions import AirflowFailException
     from io import BytesIO
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.connector_provider import connector_provider
+    from connectors.storage_connector import StorageConnector
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.transfer import get_remote_config, create_upload_url
@@ -719,7 +720,13 @@ def op_download_and_store_remote(
             task_id=gen_task_id(dag_id, "op_download_and_store_remote", task_id_suffix),
             python_callable=download_and_store_remote,
             op_args=[ext_output_config_json, artefact, download_data, final_uuid],
-            requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests", "urllib3"],
+            requirements=[
+                "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+                "eval-type-backport",
+                "requests",
+                "urllib3",
+            ],
+            # pip_install_options=["--force-reinstall"],
             python_version="3",
             dag=dag,
         )
@@ -735,7 +742,13 @@ def op_download_and_store_remote(
                 ),
                 final_uuid,
             ],
-            requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests", "urllib3"],
+            requirements=[
+                "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+                "eval-type-backport",
+                "requests",
+                "urllib3",
+            ],
+            # pip_install_options=["--force-reinstall"],
             python_version="3",
             dag=dag,
         )
@@ -836,8 +849,8 @@ def publish(
     import requests
     from airflow.exceptions import AirflowFailException
     from datetime import datetime
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.connector_provider import connector_provider
+    from connectors.storage_connector import StorageConnector
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.transfer import get_remote_config
@@ -1033,7 +1046,13 @@ def op_publish(
             meta_artefact,
             time_started,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests", "urllib3"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "requests",
+            "urllib3",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -1076,8 +1095,8 @@ def publish_update(
     import requests
     from airflow.exceptions import AirflowFailException
     from datetime import datetime
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.connector_provider import connector_provider
+    from connectors.storage_connector import StorageConnector
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.transfer import get_remote_config
@@ -1234,7 +1253,13 @@ def op_publish_update(
             time_started,
             editing_progress,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests", "urllib3"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "requests",
+            "urllib3",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )
@@ -1316,8 +1341,8 @@ def archive_artefacts(
     """
     import json
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.connector_provider import connector_provider
+    from connectors.storage_connector import StorageConnector
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.xcom import get_data_from_xcom
     from modules.operators.transfer import archive_artefact_metadata
@@ -1407,7 +1432,7 @@ def op_archive_artefacts(
             final_uuid,
             time_started,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO],
+        requirements=["/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl"],
         python_version="3",
         dag=dag,
     )
@@ -1425,7 +1450,7 @@ def create_channel_package_upload_url(ext_output_config_json, uuid):
     import json
     from modules.operators.transfer import get_remote_config, create_upload_url
     from modules.operators.transfer import authenticate_on_frontend
-    from modules.connectors.storage_connector import StorageConnector
+    from connectors.storage_connector import StorageConnector
 
     urn = StorageConnector.create_urn("assetdb", "packages", uuid, ".tar.gz")
     (conn_hans_backend, conn_hans_frontend) = get_remote_config(ext_output_config_json)
@@ -1454,7 +1479,13 @@ def op_create_channel_package_upload_url(dag, dag_id, task_id_suffix, ext_output
         task_id=gen_task_id(dag_id, "op_create_channel_package_upload_url", task_id_suffix),
         python_callable=create_channel_package_upload_url,
         op_args=[ext_output_config_json, uuid],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "requests", "urllib3"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "requests",
+            "urllib3",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

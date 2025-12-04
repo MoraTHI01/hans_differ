@@ -1,6 +1,7 @@
 // store.ts
 import {defineStore} from "pinia";
 import {LoggerService} from "@/common/loggerService";
+import {useAuthStore} from "@/stores/auth";
 
 const loggerService = new LoggerService();
 
@@ -46,14 +47,18 @@ export const useHistoryStore = defineStore("history", {
         serializableObject[key] = value;
       });
       const serializedMap = JSON.stringify(serializableObject);
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
       // Store the serialized Map in local storage
-      localStorage.setItem("hans_history", serializedMap);
+      localStorage.setItem("hans_history_" + user_id, serializedMap);
     },
     async loadHistory() {
       loggerService.log("loadHistory");
       this.historyLoading = true;
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
       // Retrieve the serialized Map from local storage
-      const serializedMap = localStorage.getItem("hans_history");
+      const serializedMap = localStorage.getItem("hans_history_" + user_id);
 
       if (serializedMap) {
         // Deserialize the JSON string back into a Map

@@ -328,7 +328,56 @@
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="button" v-on:click="uploadMedia()" class="btn btn-primary mb-2">Upload</button>
+              <button
+                type="button"
+                v-on:click="uploadMedia()"
+                class="btn btn-primary mb-2"
+                :disabled="isUploading"
+              >
+                <span v-if="isUploading">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  {{ uploadStatusMessage }}
+                </span>
+                <span v-else>Upload</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress bar for video processing -->
+          <div v-if="isUploading && showProgress" class="form-group row">
+            <div class="col-sm-10">
+              <div class="progress mb-2">
+                <div
+                  class="progress-bar progress-bar-striped progress-bar-animated"
+                  role="progressbar"
+                  :style="{ width: uploadProgress + '%' }"
+                  :aria-valuenow="uploadProgress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  {{ uploadProgress }}%
+                </div>
+              </div>
+              <small class="text-muted">{{ uploadStatusMessage }}</small>
+            </div>
+          </div>
+
+          <!-- Error message display -->
+          <div v-if="!isUploading && uploadStatusMessage && uploadStatusMessage.includes('Error')" class="form-group row">
+            <div class="col-sm-10">
+              <div class="alert alert-danger" role="alert">
+                <strong>Upload Error:</strong> {{ uploadStatusMessage }}
+                <br>
+                <small class="text-muted">
+                  <strong>For video files:</strong> Please ensure your video file is valid and not corrupted.
+                  <br><br>
+                  <strong>To check your video, run this command:</strong>
+                  <br>
+                  <code>ffprobe -v error -select_streams v:0 -show_entries stream=display_aspect_ratio -of json "your_video_file.mp4"</code>
+                  <br><br>
+                  The output should contain a non-empty <code>"streams"</code> array with aspect ratio information.
+                </small>
+              </div>
             </div>
           </div>
         </form>
@@ -392,8 +441,19 @@ const gridLicenseCCBYSA4: Ref<HTMLLabelElement | null> = ref(null);
 const inputTags: Ref<HTMLLabelElement | null> = ref(null);
 const inputAvatar: Ref<HTMLElement | null> = ref(null);
 
+// Upload status tracking
+const isUploading: Ref<boolean> = ref(false);
+const uploadProgress: Ref<number> = ref(0);
+const uploadStatusMessage: Ref<string> = ref("");
+const showProgress: Ref<boolean> = ref(false);
+const currentUploadUuid: Ref<string | null> = ref(null);
+
 const handleMediaFileUpload = () => {
   loggerService.log("Media file added!");
+  // Clear any previous error messages when a new file is selected
+  if (uploadStatusMessage.value && uploadStatusMessage.value.includes('Error')) {
+    uploadStatusMessage.value = "";
+  }
 };
 
 const handleMediaFileLanguageSelect = () => {
@@ -417,8 +477,18 @@ function wrapBooleanValue(element) {
 }
 
 function uploadMedia() {
+  // Check if we have a video file to determine if we need progress tracking
+  const mediaFile = inputMediaFile.value.files[0];
+  const isVideoFile = mediaFile && mediaFile.type.startsWith('video/');
+
+  // Initialize upload state
+  isUploading.value = true;
+  uploadProgress.value = 0;
+  showProgress.value = isVideoFile;
+  uploadStatusMessage.value = isVideoFile ? "Validating video format..." : "Uploading...";
+
   var bodyFormData = new FormData();
-  bodyFormData.append("media", inputMediaFile.value.files[0]);
+  bodyFormData.append("media", mediaFile);
   bodyFormData.append("language", inputMediaFileLanguageSelect.value);
   bodyFormData.append("slides", inputSlidesFile.value.files[0]);
   bodyFormData.append("title", inputTitle.value);
@@ -446,6 +516,7 @@ function uploadMedia() {
   bodyFormData.append("thumbnails_lecturer", inputAvatar.value);
 
   loggerService.log(bodyFormData);
+
   return apiClient
     .post("/upload", bodyFormData, {
       headers: {
@@ -455,14 +526,102 @@ function uploadMedia() {
     })
     .then((response) => {
       if (response.status === 200) {
-        //redirect to default to home page
-        router.push("/");
+        const responseData = response.data;
+        currentUploadUuid.value = responseData.uuid;
+
+        // Update progress and message
+        uploadProgress.value = 50;
+        uploadStatusMessage.value = responseData.processing_message || "Upload successful, processing started...";
+
+        // If it's a video file, start monitoring the processing status
+        if (isVideoFile && responseData.uuid) {
+          monitorUploadStatus(responseData.uuid);
+        } else {
+          // For non-video files, complete immediately
+          uploadProgress.value = 100;
+          uploadStatusMessage.value = "Upload completed successfully!";
+          setTimeout(() => {
+            isUploading.value = false;
+            router.push("/");
+          }, 2000);
+        }
       }
     })
     .catch((error) => {
       loggerService.error("Error uploading media!");
       loggerService.error(error);
+      isUploading.value = false;
+      
+      // Check if it's an aspect ratio validation error
+      if (error.response && error.response.data && error.response.data.message) {
+        const errorMessage = error.response.data.message;
+        if (errorMessage.includes("Video validation failed") || errorMessage.includes("aspect ratio")) {
+          uploadStatusMessage.value = `Video Error: ${errorMessage}`;
+        } else {
+          uploadStatusMessage.value = `Upload failed: ${errorMessage}`;
+        }
+      } else {
+        uploadStatusMessage.value = "Upload failed. Please try again.";
+      }
+      
+      showProgress.value = false;
     });
+}
+
+function monitorUploadStatus(uuid: string) {
+  const checkStatus = () => {
+    apiClient
+      .get(`/upload-status/${uuid}`)
+      .then((response) => {
+        if (response.status === 200) {
+          const statusData = response.data;
+
+          // Update progress based on status
+          switch (statusData.status) {
+            case 'processing':
+              uploadProgress.value = 75;
+              uploadStatusMessage.value = "Processing video content...";
+              break;
+            case 'completed':
+              uploadProgress.value = 100;
+              uploadStatusMessage.value = "Upload and processing completed successfully!";
+              setTimeout(() => {
+                isUploading.value = false;
+                router.push("/");
+              }, 2000);
+              return; // Stop monitoring
+            case 'failed':
+            case 'error':
+              uploadProgress.value = 0;
+              uploadStatusMessage.value = "Processing failed. Please try again.";
+              setTimeout(() => {
+                isUploading.value = false;
+                showProgress.value = false;
+              }, 3000);
+              return; // Stop monitoring
+            default:
+              uploadProgress.value = 50;
+              uploadStatusMessage.value = "Processing...";
+          }
+
+          // Continue monitoring if still processing
+          if (statusData.status === 'processing' || statusData.status === 'queued' || statusData.status === 'running') {
+            setTimeout(checkStatus, 3000); // Check again in 3 seconds
+          }
+        }
+      })
+      .catch((error) => {
+        loggerService.error("Error checking upload status:", error);
+        uploadStatusMessage.value = "Error checking status. Please refresh the page.";
+        setTimeout(() => {
+          isUploading.value = false;
+          showProgress.value = false;
+        }, 3000);
+      });
+  };
+
+  // Start monitoring after a short delay
+  setTimeout(checkStatus, 2000);
 }
 </script>
 

@@ -21,6 +21,9 @@
   --hans-dark-blue: #2950db;
   --hans-medium-blue: #5f9ceb;
   --hans-light-blue: #c8deff;
+
+  --hans-red: #dc3545;
+  --hans-dark-red: #c82333;
 }
 
 #app {

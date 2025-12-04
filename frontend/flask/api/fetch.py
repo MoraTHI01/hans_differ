@@ -14,9 +14,10 @@ from flask_openapi3 import APIBlueprint, Tag
 from pydantic import BaseModel, Field
 from urllib.parse import unquote
 
+from connectors.connector_provider import connector_provider
+from connectors.minio_connector import MinioConnectorFetchUrlMode
+
 from api.modules.metadata_provider import metadata_provider
-from api.modules.connectors.connector_provider import connector_provider
-from api.modules.connectors.minio_connector import MinioConnectorFetchUrlMode
 from api.modules.responses import ErrorForbidden, ErrorNotFound, UnauthorizedResponse, RefreshAuthenticationRequired
 from api.modules.responses import ErrorResponse, JsonResponse
 from api.modules.security import SecurityConfiguration, SecurityMetaData
@@ -153,6 +154,15 @@ class KeywordsQuery(BaseModel):
     uuid: str = Field(None, description="Uuid of the media item")
 
 
+documents_tag = Tag(name="documents data for channel", description="Provides documents data for a specific channel")
+
+
+class DocumentsQuery(BaseModel):
+    """API template for retrieving documents metadata by channel uuid"""
+
+    uuid: str = Field(None, description="Uuid of the channel")
+
+
 url_tag = Tag(
     name="generate url for ml-backend for a specfic urn",
     description="Provides a URL for a specfic urn to the ml-backend",
@@ -201,7 +211,7 @@ def get_media(query: MediaQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     print("GetMedia")
     media_item = metadata_provider.get_metadata_by_uuid(query.uuid, "uuid")
@@ -222,7 +232,7 @@ def get_marker(query: MarkerQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     markers = metadata_provider.get_markers_for_media(query.uuid)
     return JsonResponse.create_json_string_response(markers)
@@ -236,7 +246,7 @@ def get_transcript(query: TranscriptQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     transcript = metadata_provider.get_transcript_for_media(query.uuid)
     return JsonResponse.create_json_string_response(transcript)
@@ -250,7 +260,7 @@ def get_asr_results(query: AsrResultsQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     asr_results = metadata_provider.get_asr_results_for_media(query.uuid)
     print("AsrResults")
@@ -266,7 +276,7 @@ def get_transcript_results(query: TranscriptResultsQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     asr_results = metadata_provider.get_transcript_results_for_media(query.uuid)
     print("TranscriptResults")
@@ -282,7 +292,7 @@ def get_short_summary(query: ShortSummaryQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     short_summary = metadata_provider.get_short_summary_for_media(query.uuid)
     print("ShortSummaryResult")
@@ -297,7 +307,7 @@ def get_search_trie(query: SearchTrieQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     search_trie_result = metadata_provider.get_search_trie_for_media(query.uuid)
     print("SearchTrieResult")
@@ -313,7 +323,7 @@ def get_search_trie_slides(query: SearchTrieQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     search_trie_result = metadata_provider.get_search_trie_slides_for_media(query.uuid)
     print("SearchTrieSlidesResult")
@@ -329,7 +339,7 @@ def get_summary(query: SummaryQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     summary = metadata_provider.get_summary_for_media(query.uuid)
     return JsonResponse.create(summary)
@@ -343,7 +353,7 @@ def get_topics(query: TopicsQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     topics = metadata_provider.get_topics_for_media(query.uuid)
     return JsonResponse.create(topics)
@@ -357,7 +367,7 @@ def get_thumbnail_url(query: ThumbnailQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     result = metadata_provider.get_thumbnail_url_from_urn(query.urn)
     return JsonResponse.create_json_string_response(json.dumps(result))
@@ -371,7 +381,7 @@ def get_questionnaire_results(query: QuestionnaireQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     questionnaire_results = metadata_provider.get_questionnaire_for_media(query.uuid)
     return JsonResponse.create(questionnaire_results)
@@ -385,7 +395,7 @@ def get_slides_images_meta_results(query: SlidesImagesMetaQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     slides_images_meta_results = metadata_provider.get_slides_images_meta_for_media(query.uuid)
     return JsonResponse.create(slides_images_meta_results)
@@ -399,10 +409,24 @@ def get_keywords(query: KeywordsQuery):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     # if not sec_meta_data.check_identity_is_valid():
     #    return UnauthorizedResponse.create()
-    if sec_meta_data.check_user_has_roles(["ml-backend"]):
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     keywords_results = metadata_provider.get_keywords_for_media(query.uuid)
     return JsonResponse.create(keywords_results)
+
+
+@fetch_api_bp.get("/getDocuments", tags=[documents_tag])
+@jwt_required()
+def get_documents(query: DocumentsQuery):
+    """Fetch documents results for a channel and provide to vue"""
+    # Protect api from access of airflow ml-backend users
+    sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
+    # if not sec_meta_data.check_identity_is_valid():
+    #    return UnauthorizedResponse.create()
+    if sec_meta_data.check_user_has_roles(["ml-backend"]) or sec_meta_data.is_sso_user is True:
+        return ErrorForbidden.create()
+    documents_results = metadata_provider.get_documents_for_channel(query.uuid)
+    return JsonResponse.create(documents_results)
 
 
 # REQUESTS FROM ML-BACKEND
@@ -465,18 +489,31 @@ def get_metadata_by_urn(query: MetaDataQuery):
     connector = connector_provider.get_metadb_connector()
     connector.connect()
     data_dict = connector.get_metadata(query.urn)
-    # Filter internal data, only use real meta data in response
-    result_dict = {
-        "uuid": data_dict["uuid"],
-        "title": data_dict["title"],
-        "type": data_dict["type"],
-        "description": data_dict["description"],
-        "language": data_dict["language"],
-        "licenses": data_dict["licenses"],
-        "permissions": data_dict["permissions"],
-        "tags": data_dict["tags"],
-        "thumbnails": data_dict["thumbnails"],
-    }
+    if data_dict["type"] == "channel":
+        # Filter internal data, only use real meta data in response
+        result_dict = {
+            "uuid": data_dict["uuid"],
+            "type": data_dict["type"],
+            "course": data_dict["course"],
+            "course_acronym": data_dict["course_acronym"],
+            "language": data_dict["language"],
+            "lecturer": data_dict["lecturer"],
+            "tags": data_dict["tags"],
+            "thumbnails": data_dict["thumbnails"],
+        }
+    else:
+        # Filter internal data, only use real meta data in response
+        result_dict = {
+            "uuid": data_dict["uuid"],
+            "type": data_dict["type"],
+            "title": data_dict["title"],
+            "description": data_dict["description"],
+            "language": data_dict["language"],
+            "licenses": data_dict["licenses"],
+            "permissions": data_dict["permissions"],
+            "tags": data_dict["tags"],
+            "thumbnails": data_dict["thumbnails"],
+        }
     data_str = json.dumps(result_dict)
     data_json = json.loads(data_str)
     return JsonResponse.create(data_json)

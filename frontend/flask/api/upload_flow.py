@@ -3,16 +3,17 @@
 __author__ = "Andreas Gerner"
 __copyright__ = "Copyright 2024, Technische Hochschule Nuernberg"
 __license__ = "Apache 2.0"
-__version__ = "1.0.0"
+__version__ = "1.0.1" # Version bumped
 __status__ = "Draft"
 
 import io
 import json
-from typing import List
+from typing import List, Optional # MODIFICATION: Added Optional
 from uuid import uuid4
 
-from api.modules.config import get_hans_dag_output_connection_ids
-from api.modules.connectors.connector_provider import connector_provider
+from connectors.connector_provider import connector_provider
+from connectors.config import get_hans_dag_output_connection_ids
+
 from api.modules.metadata_provider import metadata_provider
 from api.modules.responses import (
     UnauthorizedResponse,
@@ -35,7 +36,9 @@ upload_flow_api_bp = APIBlueprint(
     abp_responses={"401": UnauthorizedResponse, "403": RefreshAuthenticationRequired},
 )
 
+# --- Tags (unchanged) ---
 my_lectures_tag = Tag(name="my lectures", description="Get lectures the current user has uploaded")
+my_channels_tag = Tag(name="my channels", description="Get channels of the current user")
 general_tag = Tag(name="update general", description="Update general information (title, summary)")
 chapter_fragmentation_tag = Tag(
     name="update chapter fragmentation", description="Update fragmentation of chapters and regenerate their summaries"
@@ -50,31 +53,71 @@ overwrite_edit_progress_tag = Tag(
 visibility_tag = Tag(name="change the visibility", description="Change the visibility of the selected video")
 
 
+# --- MODIFICATION: Pydantic model updated for optional fields ---
+class MediaItemsForChannel(BaseModel):
+    """API template for retrieving media items. Channel filters are optional."""
+    uuid: Optional[str] = Field(None, description="Optional: Uuid of the channel to filter by")
+    course_acronym: Optional[str] = Field(None, description="Optional: Course acronym of the channel to filter by")
+
+
+# --- MODIFICATION: Endpoint updated with conditional logic and new function call ---
 @upload_flow_api_bp.get("/my-lectures", tags=[my_lectures_tag])
 @jwt_required()
-def get_own_lectures():
+def get_own_lectures(query: MediaItemsForChannel):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if (
-        not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"])
-        or sec_meta_data.idp == "oidc_identity_provider"
-    ):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
-    media_items = metadata_provider.search_uploaded_media(sec_meta_data)
+    if query.uuid and query.course_acronym:
+        # New behavior: Call with channel filters if provided
+        media_items = metadata_provider.search_uploaded_media(
+            sec_meta_data, 
+            channel_uuid=query.uuid, 
+            channel_course_acronym=query.course_acronym
+        )
+    else:
+        # Original behavior: Call without filters to get all lectures for the user
+        media_items = metadata_provider.search_uploaded_media(sec_meta_data)
+
     if not media_items:
         return ErrorNotFound.create_custom("No media items found")
-    # Should return empty list if user is not in the role to access the video
+        
     media_items_filtered = sec_meta_data.filter_media_results(media_items, False)
-    # print(f"get_own_lectures: {media_items_filtered}")
     if media_items_filtered is None:
         return ErrorForbidden.create()
+        
     if len(media_items_filtered) > 1:
         media_items_sorted = sorted(media_items_filtered, key=lambda x: x["title"])
         return JsonResponse.create(media_items_sorted)
     else:
         return JsonResponse.create(media_items_filtered)
+
+
+
+@upload_flow_api_bp.get("/my-channels", tags=[my_channels_tag])
+@jwt_required()
+def get_own_channels():
+    sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
+    if not sec_meta_data.check_identity_is_valid():
+        return UnauthorizedResponse.create()
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
+        return ErrorForbidden.create()
+
+    channel_items = metadata_provider.search_user_channels(sec_meta_data)
+    if not channel_items:
+        return ErrorNotFound.create_custom("No channel items found")
+        
+    channel_items_filtered = sec_meta_data.filter_channel_results(channel_items)
+    if channel_items_filtered is None:
+        return ErrorForbidden.create()
+        
+    if len(channel_items_filtered) > 1:
+        channel_items_sorted = sorted(channel_items_filtered, key=lambda x: x["course_acronym"])
+        return JsonResponse.create(channel_items_sorted)
+    else:
+        return JsonResponse.create(channel_items_filtered)
 
 
 class GeneralRequest(BaseModel):
@@ -91,7 +134,7 @@ def put_summary(body: GeneralRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
     mongo_connector = connector_provider.get_metadb_connector()
@@ -99,9 +142,6 @@ def put_summary(body: GeneralRequest):
 
     urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
     meta_data = mongo_connector.get_metadata(urn_meta_data)
-
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
 
     meta_data["title"] = body.title
 
@@ -130,7 +170,6 @@ def put_summary(body: GeneralRequest):
     meta_data["state"]["editing_progress"] = 1 if body.language == "de" else 2
 
     mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
-    # mongo_connector.disconnect()
     return JsonResponse.create({"success": True})
 
 
@@ -167,7 +206,7 @@ def put_chapter_fragmentation(body: ChapterFragmentationRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
     print(f"chapter-fragmentation: New segmentation for uuid: {body.uuid}")
 
@@ -179,10 +218,6 @@ def put_chapter_fragmentation(body: ChapterFragmentationRequest):
     meta_data = mongo_connector.get_metadata(urn_meta_data)
     if meta_data is None:
         return ErrorResponse.create_custom(f"Error while fetching meta data from urn {urn_meta_data}")
-    # mongo_connector.disconnect()
-
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
 
     transcript_en = metadata_provider.get_raw_transcript_for_media(body.uuid, "en")
 
@@ -205,7 +240,6 @@ def put_chapter_fragmentation(body: ChapterFragmentationRequest):
         for i in range(do_count):
             segments.pop(0)
 
-    # print(len(segments), segments)
     for i in range(len(segments)):
         segments[i]["start"] = body.data[i].start
         segments[i]["stop"] = body.data[i].stop
@@ -214,7 +248,6 @@ def put_chapter_fragmentation(body: ChapterFragmentationRequest):
 
     for i in range(len(segments)):
         segment = segments[i]
-
         topic_result_raw["result"].append(
             {"result_index": i, "interval": [segments[i]["start"], segments[i]["stop"]], "text": segment["text"]}
         )
@@ -241,14 +274,11 @@ def put_chapter_fragmentation(body: ChapterFragmentationRequest):
     if success is False:
         return ErrorResponse.create_custom(f"Error while stroing new meta data state on urn {urn_meta_data}")
 
-    # Trigger ml-backend airflow job
-    success = trigger_airflow_dag_chapter_sum(filename, str(uuid4()), asset_urn, urn_meta_data)
+    success = trigger_airflow_dag_chapter_sum(filename, gen_uuid, asset_urn, urn_meta_data)
     if success is False:
         return ErrorResponse.create_custom("Error while triggering airflow job")
 
-    # mongo_connector.disconnect()
-    return JsonResponse.create({"success": True})
-
+    return JsonResponse.create({"success": True, "uuid": gen_uuid})
 
 class TopicFragment(BaseModel):
     result_index: int = Field(None, description="Index of this result field")
@@ -317,7 +347,7 @@ def put_chapters(body: ChaptersRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
     mongo_connector = connector_provider.get_metadb_connector()
@@ -325,9 +355,6 @@ def put_chapters(body: ChaptersRequest):
 
     urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
     meta_data = mongo_connector.get_metadata(urn_meta_data)
-
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
 
     print(f"meta_data: {urn_meta_data}")
     summary_urn = meta_data["topic_result_de" if body.topicResult.language == "de" else "topic_result_en"]
@@ -366,8 +393,6 @@ def put_chapters(body: ChaptersRequest):
     print(f"Put questionnaire urn: {questionnaire_urn}")
 
     if body.topicResult.language == "de":
-
-        # Store body.topicResult and body.questionnaire result in raw assets for translation dag
         topic_gen_uuid = str(uuid4())
         topic_asset_urn = f"assetdb:raw:{topic_gen_uuid}.json"
         topic_asset_as_stream = io.BytesIO(json.dumps(body.topicResult.model_dump()).encode())
@@ -388,7 +413,6 @@ def put_chapters(body: ChaptersRequest):
             "application/json",
             {"X-Amz-Meta-Filename": questionnaire_filename, "X-Amz-Meta-Language": "de"},
         )
-        # Trigger ml-backend airflow job
         success = trigger_airflow_dag_translate_topics_quests(
             str(uuid4()),
             urn_meta_data,
@@ -411,7 +435,6 @@ def put_chapters(body: ChaptersRequest):
     mongo_connector.connect()
     mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
     print(f"Put final meta data update on urn: {urn_meta_data}")
-    # mongo_connector.disconnect()
     return JsonResponse.create({"success": True})
 
 
@@ -425,7 +448,7 @@ def overwrite_edit_progress(body: OverwriteEditProgressRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
     mongo_connector = connector_provider.get_metadb_connector()
@@ -439,7 +462,6 @@ def overwrite_edit_progress(body: OverwriteEditProgressRequest):
     mongo_connector.connect()
     mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
     print(f"Overwrite edit progress meta data on urn: {urn_meta_data}")
-    # mongo_connector.disconnect()
     return JsonResponse.create({"success": True})
 
 
@@ -453,7 +475,7 @@ def post_restart_editing(body: RedoRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
     mongo_connector = connector_provider.get_metadb_connector()
@@ -462,16 +484,12 @@ def post_restart_editing(body: RedoRequest):
     urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
     meta_data = mongo_connector.get_metadata(urn_meta_data)
 
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
-
     meta_data["state"]["overall_step"] = "EDITING"
     meta_data["state"]["editing_progress"] = 0
     meta_data["state"]["published"] = False
     meta_data["state"]["listed"] = False
 
     mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
-    # mongo_connector.disconnect()
     return JsonResponse.create({"success": True})
 
 
@@ -494,11 +512,7 @@ def delete_item(body: DeleteRequest):
     urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
     meta_data = mongo_connector.get_metadata(urn_meta_data)
 
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
-
     mongo_connector.remove_metadata(urn_meta_data)
-    # mongo_connector.disconnect()
 
     values = list(meta_data.values())
     assets = [urn for urn in values if isinstance(urn, str) and urn.startswith("assetdb")]
@@ -542,7 +556,6 @@ def publish_on_searchengine(assetdb_connector, opensearch_connector, metadb_uuid
         return ErrorResponse.create_custom("Error while fetching search data from assetdb!")
     print("Adding search data for uuid " + metadb_uuid)
     search_data = json.loads(search_data_response.data)
-    # print ("search_data: " + json.dumps(search_data))
     opensearch_connector.insert_lecture_document(id=metadb_uuid, json_data=search_data)
     return True
 
@@ -555,10 +568,9 @@ def publish_vectors_on_searchengine(assetdb_connector, opensearch_connector, met
         return ErrorResponse.create_custom("Error while fetching search data vectors from assetdb!")
     print(f"Adding search data vectors in index {index} for uuid {metadb_uuid}")
     search_data_vectors = json.loads(search_data_response.data)
-    # print("search_data vectors: " + json.dumps(search_data_vectors))
     for n, vector_data in enumerate(search_data_vectors):
         chunk_id = f"{metadb_uuid}__{n:05d}"
-        opensearch_connector.insert_vector_entry(
+        opensearch_connector.insert_lecture_vector_entry(
             lecture_id=metadb_uuid, chunk_id=chunk_id, json_data=vector_data, index=index
         )
     return True
@@ -588,9 +600,8 @@ def publish_slides_vectors_on_searchengine(assetdb_connector, opensearch_connect
         if "500 Internal Server Error" in img_vector_data.data.decode("utf-8"):
             return ErrorResponse.create_custom("Error while fetching search data slides vectors from assetdb!")
         img_vector_json = json.loads(img_vector_data.data)
-        # print("Current slide vectors: " + json.dumps(img_vector_json))
         chunk_id = f"{metadb_uuid}__{n:05d}"
-        opensearch_connector.insert_vector_entry(
+        opensearch_connector.insert_lecture_vector_entry(
             lecture_id=metadb_uuid, chunk_id=chunk_id, json_data=img_vector_json, index=index
         )
     return True
@@ -604,8 +615,7 @@ def publish_summary_vectors_on_searchengine(assetdb_connector, opensearch_connec
         return ErrorResponse.create_custom("Error while fetching search summary data vectors from assetdb!")
     print(f"Adding search summary data vector in index {index} for uuid {metadb_uuid}")
     summary_vector_data = json.loads(search_data_response.data)
-    # print("search_summary_data_vector: " + json.dumps(summary_vector_data))
-    opensearch_connector.insert_vector_entry(
+    opensearch_connector.insert_lecture_vector_entry(
         lecture_id=metadb_uuid, chunk_id=None, json_data=summary_vector_data, index=index
     )
     return True
@@ -617,37 +627,27 @@ def put_new_visibility(body: VisibilityRequest):
     sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
     if not sec_meta_data.check_identity_is_valid():
         return UnauthorizedResponse.create()
-    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]):
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
         return ErrorForbidden.create()
 
     mongo_connector = connector_provider.get_metadb_connector()
     mongo_connector.connect()
     opensearch_connector = connector_provider.get_opensearch_connector()
     opensearch_connector.connect()
+    assetdb_connector = connector_provider.get_assetdb_connector()
+    assetdb_connector.connect()
 
     urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
     meta_data = mongo_connector.get_metadata(urn_meta_data)
 
-    # if sec_meta_data.check_user_has_roles(["lecturer"]) and not meta_data["lecturer"] == sec_meta_data.username:
-    #    return ErrorForbidden.create()
-
     meta_data["state"]["published"] = body.published
     meta_data["state"]["listed"] = body.listed
 
-    mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
-    # mongo_connector.disconnect()
-    # TODO: SEARCH VECTOR INDEX HANDLING IF AVAILABLE
-    if body.listed is True:
-        assetdb_connector = connector_provider.get_assetdb_connector()
-        assetdb_connector.connect()
-        opensearch_connector = connector_provider.get_opensearch_connector()
-        opensearch_connector.connect()
-        if "search_data" in meta_data:
-            search_data_result = publish_on_searchengine(
-                assetdb_connector, opensearch_connector, meta_data["uuid"], meta_data["search_data"]
-            )
-            if search_data_result is False:
-                return ErrorResponse.create_custom("Error publishing search engine data!")
+    (success, item) = mongo_connector.put_object(urn_meta_data, None, "application/json", meta_data)
+    if not success:
+        print("Error changing media item published state!")
+        return JsonResponse.create({"success": False})
+    if body.published is True:
         if "search_data_vectors" in meta_data:
             search_data_vectors_result = publish_vectors_on_searchengine(
                 assetdb_connector,
@@ -680,15 +680,25 @@ def put_new_visibility(body: VisibilityRequest):
                 return ErrorResponse.create_custom("Error publishing search engine summary vector data!")
     else:
         del_uuid = meta_data["uuid"]
-        del_lecture_res = opensearch_connector.delete_lecture_document(del_uuid)
-        if del_lecture_res is False:
-            print(
-                f"Warning: Could not delete search engine data maybe media item not indexed! Media item uuid: {del_uuid}"
-            )
         del_vect_res = opensearch_connector.delete_all_vector_entries_of_lecture(del_uuid)
         if del_vect_res is False:
             print(
                 f"Warning: Could not delete search engine vector data maybe media item not indexed! Media item uuid: {del_uuid}"
+            )
+
+    if body.listed is True:
+        if "search_data" in meta_data:
+            search_data_result = publish_on_searchengine(
+                assetdb_connector, opensearch_connector, meta_data["uuid"], meta_data["search_data"]
+            )
+            if search_data_result is False:
+                return ErrorResponse.create_custom("Error publishing search engine data!")
+    else:
+        del_uuid = meta_data["uuid"]
+        del_lecture_res = opensearch_connector.delete_lecture_document(del_uuid)
+        if del_lecture_res is False:
+            print(
+                f"Warning: Could not delete search engine data maybe media item not indexed! Media item uuid: {del_uuid}"
             )
 
     return JsonResponse.create({"success": True})
@@ -698,7 +708,6 @@ def trigger_airflow_dag_chapter_sum(filename, uuid, media_urn, meta_urn):
     """Helper to trigger ml-backend airflow job"""
     hans_type = "topic_result_raw"
 
-    # TODO use hostnames from configuration
     annotation_task_config = {
         "metaUrn": meta_urn,
         "input": [
@@ -710,13 +719,10 @@ def trigger_airflow_dag_chapter_sum(filename, uuid, media_urn, meta_urn):
                 "locale": "en",
             }
         ],
-        # Providing Airflow CONN_ID's for backend and frontend,
-        # see https://airflow.apache.org/docs/apache-airflow/stable/howto/connection.html
         "output": [get_hans_dag_output_connection_ids()],
     }
     airflow_connector = connector_provider.get_airflow_connector()
     airflow_connector.connect()
-    # TODO: Let the admin select the HAnS airflow DAG
     return airflow_connector.post_dag_run("chapter_sum_v1.0.0", uuid, annotation_task_config)
 
 
@@ -724,7 +730,6 @@ def trigger_airflow_dag_translate_topics_quests(
     uuid, meta_urn, topic_urn, topic_filename, questionnaire_urn, questionnaire_filename
 ):
     """Helper to trigger ml-backend airflow job"""
-    # TODO use hostnames from configuration
     annotation_task_config = {
         "metaUrn": meta_urn,
         "input": [
@@ -743,11 +748,8 @@ def trigger_airflow_dag_translate_topics_quests(
                 "locale": "de",
             },
         ],
-        # Providing Airflow CONN_ID's for backend and frontend,
-        # see https://airflow.apache.org/docs/apache-airflow/stable/howto/connection.html
         "output": [get_hans_dag_output_connection_ids()],
     }
     airflow_connector = connector_provider.get_airflow_connector()
     airflow_connector.connect()
-    # TODO: Let the admin select the HAnS airflow DAG
     return airflow_connector.post_dag_run("translate_topics_quests_v1.0.0", uuid, annotation_task_config)

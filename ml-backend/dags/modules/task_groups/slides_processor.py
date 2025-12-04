@@ -23,12 +23,13 @@ def slides_processor(parent_dag, dag_group_name_download_media_files, config={})
     :return: TaskGroup to use in a DAG
     :rtype: airflow.utils.task_group.TaskGroup
     """
-    use_orchestrator = False
-    if "use_orchestrator" in config:
-        use_orchestrator = config["use_orchestrator"]
     dpi = 150
     if "dpi" in config:
         dpi = config["dpi"]
+    llm_configs = {}
+    if "llm_configs" in config:
+        llm_configs = config["llm_configs"]
+
     with TaskGroup("slides_processor") as group3:
         # XCOM injection helper
         from modules.operators.xcom import inject_xcom_data
@@ -87,7 +88,7 @@ def slides_processor(parent_dag, dag_group_name_download_media_files, config={})
             "meta_urn",
             "not_needed_for_mode",
             "not_needed_for_mode",
-            use_orchestrator,
+            llm_configs,
         )
         t2.doc_md = """\
           #OCR text from vector format jsons and create meta jsons

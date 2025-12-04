@@ -5,9 +5,6 @@ from typing import Optional, Union
 from airflow.operators.python import PythonVirtualenvOperator
 
 
-PIP_REQUIREMENT_MINIO = "minio"
-
-
 def slides_to_images(
     download_data,
     download_data_key,
@@ -46,11 +43,11 @@ def slides_to_images(
     from io import BytesIO
     from pdf2image import convert_from_bytes
     from airflow.exceptions import AirflowFailException
-    from modules.connectors.connector_provider import connector_provider
+    from connectors.connector_provider import connector_provider
     from modules.operators.connections import get_assetdb_temp_config
     from modules.operators.transfer import HansType
     from modules.operators.xcom import get_data_from_xcom
-    from modules.connectors.minio_connector import MinioConnectorFetchUrlMode
+    from connectors.minio_connector import MinioConnectorFetchUrlMode
 
     # Get assetdb-temp config from airflow connections
     assetdb_temp_config = get_assetdb_temp_config()
@@ -210,7 +207,12 @@ def op_slides_to_images(
             upload_data_key_slides_images,
             dpi,
         ],
-        requirements=[PIP_REQUIREMENT_MINIO, "eval-type-backport", "pdf2image"],
+        requirements=[
+            "/opt/hans-modules/dist/hans_shared_modules-0.1-py3-none-any.whl",
+            "eval-type-backport",
+            "pdf2image",
+        ],
+        # pip_install_options=["--force-reinstall"],
         python_version="3",
         dag=dag,
     )

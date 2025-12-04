@@ -17,9 +17,9 @@ uuid
 PyJWT~=2.9.0
 Werkzeug~=3.1.3
 Authlib~=1.5.0
-certifi~=2025.1.31
-markdown==3.7
-beautifulsoup4==4.13.3
-openai==1.64.0
+certifi~=2025.4.26
+markdown==3.8
+beautifulsoup4==4.13.4
+openai==1.76.2
 tiktoken==0.9.0
-tokenizers==0.21.0
+tokenizers==0.21.1

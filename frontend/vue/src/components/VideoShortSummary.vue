@@ -1,12 +1,12 @@
 <template>
   <!-- video Highlights -->
-  <div v-if="route === 'SearchResults'">
+  <div v-if="route === 'SearchResults' || route === 'Channel'">
     <div class="card-body p-1">
       <h6 class="short-summary-header">
         {{ t("VideoShortSummary.headline")
         }}<ButtonHint route="generalnotes" :hovertext="t('VideoShortSummary.hint')" :hint_after="true" />
       </h6>
-      <div class="short-summary">
+      <div class="short-summary" :style="route === 'Channel' ? 'height: 10em;' : ''">
         <p>{{ summary }}</p>
       </div>
     </div>
@@ -62,5 +62,6 @@ text.value = "Load";
 }
 .short-summary {
   /*font-size: 0.7em;*/
+  overflow-y: auto;
 }
 </style>

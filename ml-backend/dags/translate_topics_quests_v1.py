@@ -38,8 +38,17 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
     time_started = now.strftime("%m_%d_%Y_%H_%M_%S")
 
     # DEVELOPER CONFIGURATION
-    do_use_orchestrator = False
     do_use_nlp_translate_remote = True
+    llm_configs = {
+        "llm_model_id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+        "llm_task": "generate",
+        "vllm_model_id": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+        "vllm_task": "generate",
+        "embedding_model_id": "llamaindex/vdr-2b-multi-v1",
+        "embedding_task": "embed",
+        "translation_model_id": "google/madlad400-7b-mt",
+        "translation_task": "translate",
+    }
     # CONFIGURATION END
 
     # Used to create unique docker container id
@@ -54,11 +63,7 @@ with DAG(DAG_NAME, default_args=default_args, schedule_interval=None, catchup=Fa
     # topic segmentation of video content
     from modules.task_groups.topic_quest_trl import topic_quest_trl
 
-    ts_config = {
-        "use_nlp_translate_remote": do_use_nlp_translate_remote,
-        "use_orchestrator": do_use_orchestrator,
-        "use_gpu": False,
-    }
+    ts_config = {"use_nlp_translate_remote": do_use_nlp_translate_remote, "use_gpu": False, "llm_configs": llm_configs}
     group6 = topic_quest_trl(dag, "download_media_files", container_id, config=ts_config)
 
     # PUBLISHING TASK GROUP

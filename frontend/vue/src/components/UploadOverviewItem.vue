@@ -12,7 +12,7 @@
       :title="t('UploadOverviewItem.overwriteVideo')"
       :content="t('UploadOverviewItem.overwriteVideoContent')"
     ></UploadModal>
-    <div v-if="media.state?.published === true">
+    <div v-if="media.state?.published === true" class="media-thumb-container">
       <router-link
         :to="{name: 'VideoPlayer', query: {uuid: media.uuid}}"
         @click="matomo_clicktracking('click_videocard_uploadoverviewitem', media.title)"
@@ -20,7 +20,7 @@
         <img class="img-fluid mediathumb grow" :src="media.thumbnails?.media" alt="thumbnail" height="221px" />
       </router-link>
     </div>
-    <div v-else>
+    <div v-else class="media-thumb-container">
       <img class="img-fluid mediathumb grow" :src="media.thumbnails?.media" alt="thumbnail" height="221px" />
     </div>
     <div class="info">
@@ -60,11 +60,16 @@
           v-if="parseAction() && parseAction()?.click"
           href=""
           @click.prevent="parseAction()?.click"
-          :disabled="!messageStore.servicesAvailable"
+          :disabled="!messageStore.servicesAvailable || changeVisibilityOngoing"
         >
           {{ parseAction()?.text }}
         </button>
-        <button class="btn btn-outline-danger" v-if="authStore.getRole() === 'admin'" @click="deleteModal = true">
+        <button
+          class="btn btn-outline-danger"
+          v-if="authStore.getRole() === 'admin' && !media.state?.overall_step === 'PROCESSING'"
+          @click="deleteModal = true"
+          :disabled="changeVisibilityOngoing"
+        >
           {{ t("UploadOverviewItem.deleteButton") }}
         </button>
         <button
@@ -74,6 +79,7 @@
             media.state?.overall_step === 'EDITING'
           "
           @click="overwriteModal = true"
+          :disabled="changeVisibilityOngoing"
         >
           {{ t("UploadOverviewItem.overwriteButton") }}
         </button>
@@ -88,6 +94,7 @@
               role="switch"
               v-model="publishedRef"
               @change="setVisibility"
+              :disabled="changeVisibilityOngoing"
             />
           </div>
         </div>
@@ -100,16 +107,24 @@
               role="switch"
               v-model="listedRef"
               @change="setVisibility"
-              :disabled="!publishedRef"
+              :disabled="!publishedRef || changeVisibilityOngoing"
             />
           </div>
         </div>
-        <div v-if="publishedRef" :id="`copy-wrapper-${media.uuid}`" class="copy-wrapper">
+        <div v-if="publishedRef && !changeVisibilityOngoing" :id="`copy-wrapper-${media.uuid}`" class="copy-wrapper">
           <a class="copy-link" :href="`/video-player?uuid=${media.uuid}`" @click.prevent="copyDirectLink(media.uuid)"
             >{{ t("UploadOverviewItem.copyButton") }}
           </a>
           <img src="/bootstrap-icons/clipboard.svg" alt="api-btn" class="img-fluid copy-img clip" />
           <img src="/bootstrap-icons/check-circle-fill.svg" alt="api-btn" class="img-fluid copy-img check" />
+        </div>
+        <div v-if="media.lms_gated_access === true">
+          <span class="restricted-text">{{ t("UploadOverviewItem.restricted") }}</span>
+          <img src="/bootstrap-icons/shield-lock-fill.svg" alt="api-btn" class="img-fluid copy-img" />
+        </div>
+        <div v-if="changeVisibilityOngoing" class="change-ongoing-spinner">
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <span class="visually-hidden" role="status">{{ t("UploadOverviewItem.changeOngoing") }}</span>
         </div>
       </div>
     </div>
@@ -148,11 +163,13 @@ watch(publishedRef, () => {
 
 const deleteModal = ref(false);
 const overwriteModal = ref(false);
+const changeVisibilityOngoing = ref(false);
 
 async function setVisibility() {
+  changeVisibilityOngoing.value = true;
   try {
     const uuid = props.media.uuid!;
-    await apiClient.put(
+    const {data} = await apiClient.put(
       "/visibility",
       {uuid, published: publishedRef.value, listed: listedRef.value},
       {
@@ -162,6 +179,17 @@ async function setVisibility() {
         },
       },
     );
+    //loggerService.log(data);
+    // Stores all uploaded videos in a map for fast lookup
+    // Note that the Javascript Map preserves insertion order
+    if ("result" in data && "success" in data.result) {
+      loggerService.log(data.result.success);
+      if (data.result.success === false) {
+        loggerService.error(`Error during changing visibility of media item: ${uuid}`);
+      }
+    } else {
+      loggerService.error(`Connection issue during changing visibility of media item: ${uuid}`);
+    }
     matomo_clicktracking(
       "click_button",
       `Media item visiblity changed: published=${publishedRef.value}, listed:${listedRef.value}`,
@@ -169,6 +197,7 @@ async function setVisibility() {
   } catch (e) {
     // TODO
   }
+  changeVisibilityOngoing.value = false;
 }
 
 function parseState() {
@@ -206,6 +235,26 @@ function parseAction(): {text: string; href?: string; click?: () => void} | unde
 async function triggerRedo() {
   try {
     const uuid = props.media.uuid!;
+    changeVisibilityOngoing.value = true;
+    const {data} = await apiClient.put(
+      "/visibility",
+      {uuid, published: false, listed: false},
+      {
+        headers: {
+          "Content-type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      },
+    );
+    //loggerService.log(data);
+    // Stores all uploaded videos in a map for fast lookup
+    // Note that the Javascript Map preserves insertion order
+    if ("result" in data && "success" in data.result) {
+      loggerService.log(data.result.success);
+      if (data.result.success === false) {
+        loggerService.error(`Error during changing visibility of media item in triggerRedo: ${uuid}`);
+      }
+    }
     await apiClient.post(
       "/redo",
       {uuid},
@@ -217,6 +266,7 @@ async function triggerRedo() {
       },
     );
     matomo_clicktracking("click_button", `Redo editing step for media item uuid: ${uuid}`);
+    changeVisibilityOngoing.value = false;
     await router.push(`/upload/1?uuid=${uuid}`);
   } catch (e) {
     // TODO
@@ -286,25 +336,26 @@ async function copyDirectLink(uuid) {
   border: 1px solid var(--hans-light-gray);
   border-radius: 0.25rem;
 
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 80% 20%;
+  grid-template-rows: auto;
   padding: 1.5rem;
   gap: 1.5rem;
 }
 
 .mediathumb {
-  display: none;
+  display: block;
   aspect-ratio: 4 / 3;
   height: 100%;
   width: 14rem;
   border-radius: 0.125rem;
 }
 
-@media (min-width: 768px) {
+/*@media (min-width: 768px) {
   .mediathumb {
     display: block;
   }
-}
+}*/
 
 .progimg {
   width: 24px;
@@ -322,18 +373,28 @@ async function copyDirectLink(uuid) {
   margin-bottom: 0;
 }
 
+.media-thumb-container {
+  grid-column: 1;
+  grid-row: 1;
+}
+
 .info {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding-bottom: 0.25rem;
+  grid-column: 1;
+  grid-row: 2;
 }
 
 .actions {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  grid-column: 2;
+  grid-row: 1;
+  padding-right: 1.5rem;
 }
 
 .buttons {
@@ -405,5 +466,28 @@ async function copyDirectLink(uuid) {
 
 .grow:hover {
   transform: scale(1.1);
+}
+
+.restricted-text {
+  padding-right: 0.5em;
+}
+
+@media (max-width: 600px) {
+  .upload-item-container {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+  }
+  .media-thumb-container {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+  .info {
+    grid-column: 1 / 4;
+    grid-row: 1;
+  }
+  .actions {
+    grid-column: 3 / 4;
+    grid-row: 2;
+  }
 }
 </style>

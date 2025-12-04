@@ -26,12 +26,12 @@ def questionnaire(
     :return: TaskGroup to use in a DAG
     :rtype: airflow.utils.task_group.TaskGroup
     """
-    use_orchestrator = False
-    if "use_orchestrator" in config:
-        use_orchestrator = config["use_orchestrator"]
     use_nlp_translate_remote = False
     if "use_nlp_translate_remote" in config:
         use_nlp_translate_remote = config["use_nlp_translate_remote"]
+    llm_configs = {}
+    if "llm_configs" in config:
+        llm_configs = config["llm_configs"]
     with TaskGroup("questionnaire") as group7:
         # XCOM injection helper
         from modules.operators.xcom import inject_xcom_data
@@ -71,7 +71,7 @@ def questionnaire(
                 parent_dag.dag_id, "questionnaire", "op_create_new_urn_on_assetdbtemp", "questionnaire_result_en_urn"
             ),
             upload_llm_result_urn_key="questionnaire_result_en_urn",
-            use_orchestrator=use_orchestrator,
+            llm_configs=llm_configs,
         )
         t2.doc_md = """\
           #Questionnaire
@@ -159,7 +159,7 @@ def questionnaire(
                     "questionnaire_result_de_urn",
                 ),
                 upload_data_key="questionnaire_result_de_urn",
-                use_orchestrator=use_orchestrator,
+                llm_configs=llm_configs,
             )
             t5.doc_md = """\
              #NLP Translation

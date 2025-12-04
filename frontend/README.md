@@ -33,6 +33,8 @@ Components:
   - Visualization
 - [d3-cloud](https://github.com/jasondavies/d3-cloud)
   - Keywords visualization as word cloud
+- [chartjs](https://www.chartjs.org/):
+  - Visualization
 
 Testing:
 
@@ -103,6 +105,7 @@ npm install d3-cloud
 npm install vuedraggable@4.1.0
 npm install sortablejs@1.15.6
 npm install pdfjs-dist
+npm install chart.js
 npm run lint
 npm run dev
 ```

@@ -7,6 +7,7 @@ __version__ = "1.0.0"
 __status__ = "Draft"
 
 
+import requests
 import json
 from urllib.parse import unquote
 
@@ -15,7 +16,8 @@ from flask import current_app
 # https://luolingchun.github.io/flask-openapi3/Example/
 # https://github.com/luolingchun/flask-api-demo/blob/master/src/app/utils/jwt_tools.py
 from flask_jwt_extended import get_jwt_identity
-from api.modules.connectors.connector_provider import connector_provider
+
+from connectors.connector_provider import connector_provider
 
 
 class SecurityConfiguration:
@@ -39,11 +41,12 @@ class SecurityMetaData:
     """Meta data used e.g. to filter query results"""
 
     def __init__(
-        self, i_subject_id, i_username, i_language, i_faculty, i_university, i_course, i_role, i_idp, i_id_token
+        self, i_subject_id, i_username, i_mail, i_language, i_faculty, i_university, i_course, i_role, i_idp, i_id_token
     ):
         """Init meta data"""
         self.subject_id = unquote(i_subject_id, encoding=None)
         self.username = unquote(i_username, encoding=None)
+        self.mail = unquote(i_mail, encoding=None)
         self.language = i_language
         self.faculty = unquote(i_faculty, encoding=None).casefold().lower()
         self.university = unquote(i_university, encoding=None).casefold().lower()
@@ -51,6 +54,7 @@ class SecurityMetaData:
         self.role = i_role
         self.idp = i_idp
         self.id_token = i_id_token
+        self.is_sso_user = self.idp != "simple_identity_provider"
 
     @staticmethod
     def gen_meta_data_from_identity(verbose=False):
@@ -61,6 +65,7 @@ class SecurityMetaData:
             print(identity)
         subject_id = identity.get("id")
         username = identity.get("username")
+        mail = identity.get("mail")
         lang = identity.get("preferedLanguage")
         faculty = identity.get("faculty")
         university = identity.get("university")
@@ -68,7 +73,7 @@ class SecurityMetaData:
         role = identity.get("role")
         idp = identity.get("idp")
         id_token = identity.get("id_token")
-        return SecurityMetaData(subject_id, username, lang, faculty, university, course, role, idp, id_token)
+        return SecurityMetaData(subject_id, username, mail, lang, faculty, university, course, role, idp, id_token)
 
     def _log_identity(self, verbose=False):
         """
@@ -78,6 +83,7 @@ class SecurityMetaData:
         if verbose is True:
             print(self.subject_id)
             print(self.username)
+            print(self.mail)
         print(self.language)
         print(self.faculty)
         print(self.university)
@@ -110,7 +116,28 @@ class SecurityMetaData:
         else:
             return list(filter(lambda d: d[key][subkey].casefold().lower() in key_val_list, input_list))
 
-    def final_filter_verify_published(self, result_list, verify_published=True):
+    def final_filter_verify_restricted(self, result_list):
+        """
+        Filter a filtered query result list to only contain access granted restricted media
+
+        :param list result_list: query result list of filter_media_results or channel results
+
+        :return list: Filtered query result list with only access granted items
+        """
+        print("FilterVerifyRestricted")
+        restricted_items = list(filter(lambda d: d["lms_gated_access"] is True, result_list))
+        print(f"CheckAccessForRestrictedItems: {restricted_items}")
+        # Remove all items that are restricted and not allowed to be accessed
+        for rel in restricted_items:
+            if rel["lms_gated_access_details"]["type"] == "moodle":
+                course_id = rel["lms_gated_access_details"]["course_id"]
+                if not self.verify_protected_access(course_id) and self.role.lower() != "admin":
+                    print("Removing restricted item!")
+                    result_list.remove(rel)
+        print(f"FilterVerifyRestricted: {result_list}")
+        return result_list
+
+    def final_filter_verify_published(self, result_list, verify_published=True, verify_restricted=True):
         """
         Filter a filtered query result list to only contain published media
 
@@ -134,7 +161,10 @@ class SecurityMetaData:
                 for el in rem_items:
                     result_list.remove(el)
         # print(f"FilterVerifyPublishedResult: {result_list}")
-        return result_list
+        if verify_restricted is True:
+            return self.final_filter_verify_restricted(result_list)
+        else:
+            return result_list
 
     def filter_media_results(self, media_query_result_list, verify_published=True):
         """
@@ -189,15 +219,15 @@ class SecurityMetaData:
         # Prevent admins and developers from filtering faculty
         # Admins will get a university item list
         if self.role.lower() == "admin" or self.role.lower() == "developer" or self.idp == "oidc_identity_provider":
-            return default_items + list_university
+            return self.final_filter_verify_restricted(default_items + list_university)
         # Filter university items by faculty
         list_faculty = self._filter(list_university, [self.faculty.lower()], "faculty")
         # Prevent filtering course if wildcard set
         if self.course == "*":
-            return default_items + list_faculty
+            return self.final_filter_verify_restricted(default_items + list_faculty)
         # Filter faculty items by course acronym id
         list_course = self._filter(list_faculty, [self.course.lower()], "course_acronym")
-        return default_items + list_course
+        return self.final_filter_verify_restricted(default_items + list_course)
 
     def check_user_has_roles(self, input_roles_list):
         """
@@ -238,3 +268,121 @@ class SecurityMetaData:
             else:
                 print("OIDC identity is not valid!")
                 return False
+
+    def verify_protected_access(self, course_id="2"):
+        """
+        Check if current identity is allowed for access
+        :return bool True if allowed, False otherwise
+        """
+        # print("check_identity_is_valid")
+        idp = current_app.config["MULTIPASS_IDENTITY_PROVIDERS"]["oidc_identity_provider"]
+        # {'type': 'moodle', 'url': 'http://localhost/webservice/rest/server.php', 'wstoken': '0815'}
+        restricted_permission_provider = idp["restricted_permission_provider"]
+        url = restricted_permission_provider["url"]
+        wstoken = restricted_permission_provider["wstoken"]
+
+        # Define the parameters for the request
+        params = {
+            "wstoken": wstoken,
+            "wsfunction": "core_user_get_users_by_field",
+            "moodlewsrestformat": "json",
+            "field": "email",
+            "values[0]": self.mail,
+        }
+        user_id = -1
+        try:
+            # Make the POST request to the Moodle API
+            response = requests.post(url, data=params)
+            # Check if the request was successful
+            if response.status_code == 200:
+                user_data = response.json()
+                if user_data:
+                    # print(user_data)
+                    if "exception" in user_data:
+                        ex = response["exception"]
+                        print(f"Error: {response.status_code} - {ex}")
+                    else:
+                        user_id = user_data[0].get("id")
+                        print(f"User ID: {user_id}")
+                else:
+                    print("No user found with the provided email.")
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+        except:
+            print("Error during connection to LMS. Trying second attempt.")
+            try:
+                # Make the POST request to the Moodle API
+                response = requests.post(url, data=params)
+                # Check if the request was successful
+                if response.status_code == 200:
+                    user_data = response.json()
+                    if user_data:
+                        # print(user_data)
+                        if "exception" in user_data:
+                            ex = response["exception"]
+                            print(f"Error: {response.status_code} - {ex}")
+                        else:
+                            user_id = user_data[0].get("id")
+                            print(f"User ID: {user_id}")
+                    else:
+                        print("No user found with the provided email.")
+                else:
+                    print(f"Error: {response.status_code} - {response.text}")
+            except:
+                print("Connection to LMS failed.")
+
+        if user_id == -1:
+            return False
+
+        payload = {
+            "wstoken": wstoken,
+            "wsfunction": "core_enrol_get_users_courses",
+            "moodlewsrestformat": "json",
+            "userid": user_id,
+        }
+        try:
+            response = requests.post(url, data=payload)
+            # Check if the request was successful
+            if response.status_code == 200:
+                # [{'id': 2, ...}, ...]
+                user_data = response.json()
+                if user_data:
+                    # print(user_data)
+                    if "exception" in user_data:
+                        ex = response["exception"]
+                        print(f"Error: {response.status_code} - {ex}")
+                    else:
+                        for item in user_data:
+                            if int(item["id"]) == int(course_id):
+                                print(f"Course ID: {course_id} found!")
+                                return True
+                else:
+                    print("No course id found in users courses with the provided email.")
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+        except:
+            print("Error during connection to LMS. Trying second attempt.")
+            try:
+                response = requests.post(url, data=payload)
+                # Check if the request was successful
+                if response.status_code == 200:
+                    # [{'id': 2, ...}, ...]
+                    user_data = response.json()
+                    if user_data:
+                        # print(user_data)
+                        if "exception" in user_data:
+                            ex = response["exception"]
+                            print(f"Error: {response.status_code} - {ex}")
+                        else:
+                            for item in user_data:
+                                if int(item["id"]) == int(course_id):
+                                    print(f"Course ID: {course_id} found!")
+                                    return True
+                    else:
+                        print("No course id found in users courses with the provided email.")
+                else:
+                    print(f"Error: {response.status_code} - {response.text}")
+            except:
+                print("Connection to LMS failed.")
+                return False
+        return False

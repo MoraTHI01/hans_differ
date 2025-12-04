@@ -26,6 +26,7 @@ RUN apt-get -y update && apt-get -y upgrade && apt-get -y install -y apache2 \
     nano \
     openssh-client \
     lsof \
+    ffmpeg \
  && apt-get -y clean \
  && apt-get -y autoremove \
  && rm -rf /var/lib/apt/lists/*
@@ -37,6 +38,9 @@ COPY --from=build-stage /vue/dist /var/www/html
 COPY ./flask /var/www/flask
 # Install flask requirements
 RUN pip install -r /var/www/flask/requirements.txt --break-system-packages
+# Copy the hans modules
+COPY ./hans-modules /var/www/hans-modules
+RUN pip install /var/www/hans-modules/dist/*.whl --break-system-packages
 
 # Copy over the apache2 configuration files
 COPY ./apache2/flask_apache2.conf /etc/apache2/sites-available/flask_apache2.conf

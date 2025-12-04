@@ -47,6 +47,15 @@
       />
       <!-- create button end -->
 
+      <!-- statistics button -->
+      <ButtonDark
+        class="dropdown-item"
+        src="/bootstrap-icons/graph-up.svg"
+        route="statistics"
+        :btntext="t('DropdownLogin.statistics')"
+      />
+      <!-- statistics button end -->
+
       <!-- upload button -->
       <ButtonDark
         class="dropdown-item"
@@ -78,7 +87,7 @@
       <ButtonDark
         class="dropdown-item"
         src="/bootstrap-icons/ui-checks.svg"
-        route="upload-overview"
+        route="upload-channel"
         :btntext="t('DropdownLogin.yourMedia')"
       />
       <!-- upload flow button end -->
@@ -130,10 +139,19 @@
         v-if="!authStore.getOidcUsed()"
         class="dropdown-item"
         src="/bootstrap-icons/ui-checks.svg"
-        route="upload-overview"
+        route="upload-channel"
         :btntext="t('DropdownLogin.yourMedia')"
       />
       <!-- upload flow button end -->
+
+      <!-- statistics button -->
+      <ButtonDark
+        class="dropdown-item"
+        src="/bootstrap-icons/graph-up.svg"
+        route="statistics"
+        :btntext="t('DropdownLogin.statistics')"
+      />
+      <!-- statistics button end -->
 
       <!-- upload button -->
       <ToggleDark

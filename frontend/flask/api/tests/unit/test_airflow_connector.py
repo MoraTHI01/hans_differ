@@ -9,10 +9,12 @@ __version__ = "1.0.0"
 __status__ = "Draft"
 
 
+from connectors.airflow_connector import AirflowConnector
+
 from pathlib import Path
 from uuid import uuid4
 import pytest
-from api.modules.connectors.airflow_connector import AirflowConnector
+
 
 DATA_PATH = Path(__file__).parent.joinpath("data/")
 

@@ -91,6 +91,8 @@ export const useMessageStore = defineStore({
                     text: item.content[0].content[0].text,
                   },
                 ],
+                mediaContextUuids: item.mediaContextUuids,
+                documentContextUuids: item.documentContextUuids,
               });
             } else {
               for (const contentItem of item.content) {
@@ -105,6 +107,8 @@ export const useMessageStore = defineStore({
                         text: contentItem.content[0].text,
                       },
                     ],
+                    mediaContextUuids: item.mediaContextUuids,
+                    documentContextUuids: item.documentContextUuids,
                   });
                 }
               }
@@ -124,14 +128,19 @@ export const useMessageStore = defineStore({
         serializableObject[key] = value;
       });
       const serializedMap = JSON.stringify(serializableObject);
+      // Store messages with uuid of user
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
       // Store the serialized Map in local storage
-      localStorage.setItem("hans_messages", serializedMap);
+      localStorage.setItem("hans_messages_" + user_id, serializedMap);
     },
     async loadMessages() {
       if (this.messages.entries.length === 0) {
         loggerService.log("loadMessages");
+        const authStore = useAuthStore();
+        const user_id = authStore.getUserId();
         // Retrieve the serialized Map from local storage
-        const serializedMap = localStorage.getItem("hans_messages");
+        const serializedMap = localStorage.getItem("hans_messages_" + user_id);
 
         if (serializedMap) {
           // Deserialize the JSON string back into a Map
@@ -190,6 +199,7 @@ export const useMessageStore = defineStore({
         data: message,
       };
       loggerService.log("transferMessage");
+      loggerService.log(message);
       try {
         this.requestWasCanceled = false;
         this.requestTimeoutError = false;
@@ -199,8 +209,8 @@ export const useMessageStore = defineStore({
             "Content-type": "application/json",
             "Access-Control-Allow-Origin": "*",
           },
-          // Adjust timeout as needed, currently 360 seconds
-          timeout: 360000,
+          // Adjust timeout as needed, currently 600 seconds, aka 10 min for reasoning
+          timeout: 600000,
         });
         loggerService.log(data);
         if ("data" in data && "result" in data.data[0]) {
@@ -298,6 +308,9 @@ export const useMessageStore = defineStore({
           useVisionSnapshot: message.useVisionSnapshot,
           snapshot: message.snapshot,
           stream: message.stream,
+          reasoning: message.reasoning,
+          mediaContextUuids: message.mediaContextUuids,
+          documentContextUuids: message.documentContextUuids,
         } as Message;
         loggerService.log(response_message);
         let itemMessages = this.getMessages(uuid);

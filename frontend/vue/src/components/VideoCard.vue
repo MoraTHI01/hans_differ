@@ -1,6 +1,6 @@
 <template>
   <div :class="viewportWidth >= 768 ? 'video-card' : 'video-card-mobile'">
-    <div :class="'card border-0 mb-3 ' + videoClasses">
+    <div :class="'card border-0 mb-3 video-thumb-container ' + videoClasses">
       <!-- video thumbnail if we are in SearchResultsView-->
       <router-link
         class="video-thumb"
@@ -20,7 +20,7 @@
       <VideoDescription :video="props.video" />
       <!-- video description end -->
     </div>
-    <div :class="viewportWidth >= 768 ? ['col-4', 'video-info'] : ['col', 'video-info-mobile']">
+    <div :class="viewportWidth > 810 ? ['col-4', 'video-info'] : ['row', 'video-info-mobile']">
       <!-- short summary if we are in SearchResultsView-->
       <VideoShortSummary :video="props.video" />
       <!-- short summary end -->
@@ -101,8 +101,13 @@ if (props.show_position === true) {
   background-color: rgba(0, 0, 0, 0.6);
 }
 
+.video-thumb-container {
+  background-color: transparent;
+}
+
 .video-thumb {
   text-decoration: none !important;
+  pointer-events: auto;
 }
 
 .avatar {

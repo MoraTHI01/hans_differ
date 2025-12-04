@@ -13,6 +13,7 @@ import {SearchTrieResult, SearchTrie} from "@/data/SearchTrie";
 import {Alignment, SlidesImagesMeta, SlidesImagesMetaResults, UrlClasses} from "@/data/SlidesImagesMeta";
 import {Keywords, KeywordsResult, KeywordsResults} from "@/data/Keywords";
 import {LoggerService} from "@/common/loggerService";
+import {useAuthStore} from "@/stores/auth";
 
 const loggerService = new LoggerService();
 
@@ -204,17 +205,21 @@ export const useMediaStore = defineStore({
   },
   actions: {
     getSwitchSlidesAndVideo() {
-      const value = localStorage.getItem("hans_switchSlidesVideo");
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
+      const value = localStorage.getItem("hans_switchSlidesVideo_" + user_id);
       if (value === undefined || value === null) {
         return false;
       }
       return value;
     },
     setSwitchSlidesAndVideo(value: boolean) {
+      const authStore = useAuthStore();
+      const user_id = authStore.getUserId();
       if (value === true) {
-        localStorage.setItem("hans_switchSlidesVideo", value);
+        localStorage.setItem("hans_switchSlidesVideo_" + user_id, value);
       } else {
-        localStorage.removeItem("hans_switchSlidesVideo");
+        localStorage.removeItem("hans_switchSlidesVideo_" + user_id);
       }
     },
     async setLastGlobalSearchterms(globalsearchterms: string[]) {
@@ -287,11 +292,13 @@ export const useMediaStore = defineStore({
       // Finish loading after successful or failed requests
       this.recentMedia.loading = false;
     },
-    async loadUploadedMedia() {
+    async loadUploadedMedia(channel_uuid: string, channel_course_acronym: string) {
       loggerService.log("loadUploadedMedia");
       this.uploadedMedia.loading = true;
       this.uploadedMedia.startLoading(new Map());
-      const {data} = await apiClient.get("/my-lectures");
+      const {data} = await apiClient.get(
+        "/my-lectures?uuid=" + channel_uuid + "&course_acronym=" + channel_course_acronym,
+      );
       loggerService.log(data);
       // Stores all uploaded videos in a map for fast lookup
       // Note that the Javascript Map preserves insertion order

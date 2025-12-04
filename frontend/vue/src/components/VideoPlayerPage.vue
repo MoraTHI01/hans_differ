@@ -102,7 +102,12 @@
               </WorkbenchTabContent>
               <!-- Render the special chat tab whenever chat is enabled -->
               <WorkbenchTabContent :active="chatActive" tab-id="text-chat">
-                <ChatComponent :video="mediaItem" :active="chatActive" />
+                <ChatComponent
+                  :uuid="props.mediaItem.uuid"
+                  :language="props.mediaItem.language"
+                  :active="chatActive"
+                  :channelmode="false"
+                />
               </WorkbenchTabContent>
               <!-- Render the special question tab whenever question is enabled -->
               <WorkbenchTabContent :active="linksActive" tab-id="external-links">
@@ -593,7 +598,7 @@ const resize = (event: MouseEvent) => {
 </script>
 <style scoped>
 .video-support-content {
-  width: min(100vw, max(100ch, 124vh));
+  width: min(98vw, max(100ch, 124vh));
 }
 .resizable-container {
   display: flex;
@@ -601,8 +606,8 @@ const resize = (event: MouseEvent) => {
   /*height: 60vh; /* Set an initial height */
   height: fit-content;
   border: 1px solid #ccc; /* Add a border for visual separation */
-  max-width: min(100vw, max(100ch, 124vh));
-  width: min(100vw, max(100ch, 124vh));
+  max-width: min(98vw, max(100ch, 124vh));
+  width: min(98vw, max(100ch, 124vh));
 }
 
 .resizable-container-small {
@@ -661,6 +666,7 @@ nav:empty {
 
 .video-transcript {
   margin-bottom: 2.5%;
+  height: 200px;
 }
 
 @media (max-aspect-ratio: 3/4) {
@@ -671,6 +677,7 @@ nav:empty {
 
   .video-transcript {
     grid-row: 3;
+    height: 100px;
   }
 
   .workbench {

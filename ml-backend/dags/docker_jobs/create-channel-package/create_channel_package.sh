@@ -72,10 +72,13 @@ else
         work_dir=$(pwd)
         cd $packages_folder
         tar -czvf $channel_package_path .
+        echo "Created package archive $channel_package_path"
+        # This was commented before, disabling the upload of the package to the packages - no documentation was provided of why this was executed
         cd $work_dir
         url_upload=$(python3 parse_xcom.py "${UPLOAD_URL}" "result")
         echo "Uploading $channel_package_path to $url_upload"
         curl -X PUT "$url_upload" --upload-file "$channel_package_path" --compressed --max-time 7200 --connect-timeout 30 -v
+        # This was commented before, disabling the upload of the package to the packages - no documentation was provided of why this was executed
         echo '{"result": "finished"}'
     else
         printHelp

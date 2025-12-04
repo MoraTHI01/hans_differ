@@ -35,8 +35,14 @@ export const useAuthStore = defineStore({
     getLoginInProgress: (state) => () => {
       return state.loggedIn.loading;
     },
+    getUserId: (state) => () => {
+      return state.user?.id;
+    },
     getUsername: (state) => () => {
       return state.user?.username;
+    },
+    getInstitute: (state) => () => {
+      return state.user?.university;
     },
     getRole: (state) => () => {
       return state.user?.role;
@@ -74,7 +80,9 @@ export const useAuthStore = defineStore({
       const tokenJson = JSON.parse(window.atob(accessToken.split(".")[1]));
       this.jwtAccess.expiration = tokenJson.exp;
       this.user = new User(
+        tokenJson.sub.id,
         tokenJson.sub.username,
+        tokenJson.sub.mail,
         tokenJson.sub.firstName,
         tokenJson.sub.lastName,
         tokenJson.sub.preferedLanguage,

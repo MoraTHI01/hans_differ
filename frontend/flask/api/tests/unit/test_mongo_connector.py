@@ -12,8 +12,8 @@ __status__ = "Draft"
 import json
 from pathlib import Path
 import pytest
+from connectors.mongo_connector import MongoConnector
 
-from api.modules.connectors.mongo_connector import MongoConnector
 
 DATA_PATH = Path(__file__).parent.joinpath("data/")
 

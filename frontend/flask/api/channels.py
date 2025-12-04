@@ -14,9 +14,18 @@ from flask_jwt_extended import jwt_required
 from flask_openapi3 import APIBlueprint, Tag, FileStorage
 from pydantic import BaseModel, Field
 
-from api.modules.config import get_frontend_host, get_hans_dag_output_connection_ids
-from api.modules.connectors.connector_provider import connector_provider
-from api.modules.responses import ErrorForbidden, UnauthorizedResponse, RefreshAuthenticationRequired
+from connectors.connector_provider import connector_provider
+from connectors.config import get_frontend_host, get_hans_dag_output_connection_ids
+
+from api.modules.metadata_provider import metadata_provider
+from api.modules.responses import (
+    UnauthorizedResponse,
+    RefreshAuthenticationRequired,
+    JsonResponse,
+    ErrorResponse,
+    ErrorForbidden,
+    ErrorNotFound,
+)
 from api.modules.responses import ErrorResponse, JsonResponse
 from api.modules.security import SecurityConfiguration, SecurityMetaData
 
@@ -123,7 +132,7 @@ def get_channel_entry(form: CreateChannelForm, uuid):
         "license": form.license,
         "license_url": form.license_url,
         "semester": form.semester,
-        "tags": form.tags.split(","),
+        "tags": form.tags.split(",") if form.tags else [],
         "thumbnails": {"lecturer": form.thumbnails_lecturer},
         "university": form.university,
         "university_acronym": form.university_acronym,
@@ -217,4 +226,61 @@ def create_channel(form: CreateChannelForm):
         if success is False:
             return ErrorResponse.create_custom("Error while triggering airflow job")
 
+    return JsonResponse.create({"success": True, "uuid":uuid })
+
+
+class ChannelProtectionRequest(BaseModel):
+    uuid: str = Field(None, description="Identifier of the channel item")
+    lmsGatedAccess: bool = Field(None, description="Protect channel by LMS-Course-ID")
+    courseId: str = Field(None, description="LMS-Course-ID")
+
+
+protection_tag = Tag(
+    name="change the protection for a course and its media items and documents",
+    description="change the protection for a course and its media items and documents",
+)
+
+
+@channel_api_bp.put("/updateChannelProtection", tags=[protection_tag])
+@jwt_required()
+def update_channel_protection(body: ChannelProtectionRequest):
+    sec_meta_data = SecurityMetaData.gen_meta_data_from_identity()
+    if not sec_meta_data.check_identity_is_valid():
+        return UnauthorizedResponse.create()
+    if not sec_meta_data.check_user_has_roles(["admin", "developer", "lecturer"]) or sec_meta_data.is_sso_user is True:
+        return ErrorForbidden.create()
+
+    mongo_connector = connector_provider.get_metadb_connector()
+    mongo_connector.connect()
+    urn_meta_data = f"metadb:meta:post:id:{body.uuid}"
+
+    channel_meta_data = mongo_connector.get_metadata(urn_meta_data)
+
+    channel_meta_data["lms_gated_access"] = body.lmsGatedAccess
+    channel_meta_data["lms_gated_access_details"] = {"type": "moodle", "lms_name": "Moodle", "course_id": body.courseId}
+    media_items = metadata_provider.search_uploaded_media(body.uuid, channel_meta_data["course_acronym"], sec_meta_data)
+    if not media_items:
+        print("No media items found")
+        return JsonResponse.create({"success": False})
+    media_items_filtered = sec_meta_data.filter_media_results(media_items, False)
+    # print(f"get_own_lectures: {media_items_filtered}")
+    if media_items_filtered is None:
+        print("User media items empty")
+        return JsonResponse.create({"success": False})
+    for media_item in media_items_filtered:
+        curr_uuid = media_item["uuid"]
+        media_item_urn_meta_data = f"metadb:meta:post:id:{curr_uuid}"
+        curr_meta_data = mongo_connector.get_metadata(media_item_urn_meta_data)
+        curr_meta_data["lms_gated_access"] = channel_meta_data["lms_gated_access"]
+        curr_meta_data["lms_gated_access_details"] = channel_meta_data["lms_gated_access_details"]
+        (success, urn_result) = mongo_connector.put_object(
+            media_item_urn_meta_data, None, "application/json", curr_meta_data
+        )
+        if success is False:
+            print("Error during media meta data protection update!")
+            return JsonResponse.create({"success": False})
+    (success, item) = mongo_connector.put_object(urn_meta_data, None, "application/json", channel_meta_data)
+    if not success:
+        print("Error changing channel protection!")
+        return JsonResponse.create({"success": False})
     return JsonResponse.create({"success": True})

@@ -27,6 +27,7 @@ RUN python3 -m pip install --upgrade pip
 RUN apt-get -y update && apt-get -y upgrade && apt-get -y install -y \
 build-essential \
 yasm \
+nasm \
 cmake \
 libtool \
 bc \
@@ -56,7 +57,7 @@ RUN cd /code/ffmpeg && make -j 8 && make install && ldconfig
 RUN cd /code/ffmpeg/tools && make -j 8 qt-faststart && cp qt-faststart /usr/local/bin/
 
 RUN python3 -m pip install minio
-RUN cd /code/modules/connectors && chmod -R +x * && \
-cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
+RUN cd /code && chmod +x parse_xcom.py && chmod +x upload_assetdb_temp.py && chmod +x download_assetdb_temp.py
 
 RUN cd /code && chmod +x convert.sh && chmod +x create_dash.sh && chmod +x create_hls.sh
+RUN cd /code && python3 -m pip install /code/modules/dist/hans_shared_modules-0.1-py3-none-any.whl

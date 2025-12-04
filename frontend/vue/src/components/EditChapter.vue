@@ -38,15 +38,29 @@
       <button v-else-if="language === 'de'" class="btn btn-primary" @click="addQuestion">
         <img width="24" height="24" src="/bootstrap-icons/plus.svg" alt="add question" class="img-fluid" />
       </button>
-      <div v-if="language === 'de'" class="form-check form-switch llm-switch">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          id="flexSwitchCheckChecked"
-          v-model="useLLMtoAdd"
-          :disabled="llmGenerationOngoing"
-        />
-        <label class="form-check-label" for="flexSwitchCheckChecked">{{ t("EditChapter.useLLM") }}</label>
+      <div v-if="language === 'de'" class="llm-switches">
+        <div class="form-check form-switch llm-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="flexSwitchCheckChecked"
+            v-model="useLLMtoAdd"
+            :disabled="llmGenerationOngoing"
+          />
+          <label class="form-check-label" for="flexSwitchCheckChecked">{{ t("EditChapter.useLLM") }}</label>
+        </div>
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="flexSwitchReasoningChecked"
+            v-model="useLLMReasoning"
+            :disabled="llmGenerationOngoing || !useLLMtoAdd"
+          />
+          <label class="form-check-label" for="flexSwitchReasoningChecked">{{
+            t("EditChapter.useLLMReasoning")
+          }}</label>
+        </div>
       </div>
     </div>
     <div v-if="questionnaireResultItem.questionnaire[activeDifficulty].length > 0" class="question-container">
@@ -99,6 +113,7 @@ const difficultyList = ref(questionGenerator.difficulties);
 const activeQuestion = ref(0);
 const doDirectEdit = ref(false);
 const useLLMtoAdd = ref(true);
+const useLLMReasoning = ref(true);
 const llmGenerationOngoing = ref(false);
 const currQuestionItem = ref(questionnaireResultItem.value.questionnaire[activeDifficulty.value][activeQuestion.value]);
 const summaryRef = ref(model.value.summary);
@@ -205,6 +220,7 @@ async function addQuestion() {
       props.language,
       intervalContext,
       props.uuid,
+      useLLMReasoning.value,
     );
     loggerService.log(questionaire);
     try {
@@ -336,8 +352,14 @@ button {
   width: 100%;
 }
 
-.llm-switch {
+.llm-switches {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.llm-switch {
+  padding-right: 1em;
 }
 
 textarea[readonly] {

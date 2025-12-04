@@ -27,9 +27,16 @@ const router = createRouter({
       props: (route) => ({query: route.query.q, fields: route.query.f}),
     },
     {
+      path: "/channel",
+      name: "Channel",
+      component: () => import("@/views/ChannelView.vue"),
+      props: (route) => ({uuid: route.query.uuid}),
+    },
+    {
       path: "/video-player",
       name: "VideoPlayer",
       component: () => import("@/views/VideoPlayerView.vue"),
+      props: (route) => ({uuid: route.query.uuid}),
     },
     {
       path: "/contact",
@@ -94,6 +101,11 @@ const router = createRouter({
       component: () => import("@/views/AirflowView.vue"),
     },
     {
+      path: "/upload/channel",
+      name: "upload-channel",
+      component: () => import("@/views/upload/UploadChannel.vue"),
+    },
+    {
       path: "/upload/overview",
       name: "upload-overview",
       component: () => import("@/views/upload/UploadOverview.vue"),
@@ -136,6 +148,11 @@ const router = createRouter({
       component: () => import("@/views/upload/UploadChapters.vue"),
     },
     {
+      path: "/statistics",
+      name: "statistics",
+      component: () => import("@/views/StatisticsView.vue"),
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "notfound",
       component: () => import("@/views/NotFoundView.vue"),
@@ -176,6 +193,7 @@ router.beforeEach(async (to) => {
     "/create",
     "/upload",
     "/survey",
+    "/upload/channel",
     "/upload/overview",
     "/upload/1",
     "/upload/2",
